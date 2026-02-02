@@ -26,19 +26,6 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
-// Legacy Circle wallet placeholders
-app.post("/circle/wallets/create", (req, res) => {
-  res.json({ message: "Placeholder for creating a Circle wallet" });
-});
-
-app.get("/circle/wallets/:id", (req, res) => {
-  res.json({ message: `Placeholder for getting Circle wallet ${req.params.id}` });
-});
-
-app.post("/circle/gateway/mint", (req, res) => {
-  res.json({ message: "Placeholder for minting with Circle Gateway" });
-});
-
 app.listen(port, () => {
   console.log(`API server listening at http://localhost:${port}`);
 });
