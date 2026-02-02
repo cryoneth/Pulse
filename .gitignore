@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Environment files (secrets)
+.env
+.env.*
+!.env.example
+
+# Next.js
+.next/
+out/
+
+# Build
+build/
+dist/
+
+# Hardhat / Foundry
+contracts/cache/
+contracts/artifacts/
+contracts/typechain-types/
+
+# Misc
+.DS_Store
+*.pem
+.vercel
+*.tsbuildinfo
+next-env.d.ts
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+2026-02-02-implement-the-following-plan.txt

@@ -1,0 +1,37 @@
+```mermaid
+graph TD
+    subgraph "User Device"
+        A[Mobile-first PWA]
+    end
+
+    subgraph "Backend (Node.js)"
+        B[API Server]
+    end
+
+    subgraph "EVM Chains (Arc Testnet, Base Sepolia)"
+        C[MarketFactory Contract]
+        D[Market Contract]
+    end
+
+    subgraph "Third-Party Services"
+        E[LI.FI Composer]
+        F[Circle Wallets API]
+        G[Circle Gateway API]
+    end
+
+    A -- "Connect Wallet" --> E
+    A -- "Place Bet (LI.FI Flow)" --> E
+    E -- "swap -> bridge -> approve -> placeBet" --> D
+
+    A -- "Create Wallet (Optional)" --> B
+    B -- "Create Wallet" --> F
+
+    A -- "Unified USDC Balance" --> B
+    B -- "Mint/Route USDC" --> G
+
+    A -- "Read Market Data" --> C
+    A -- "Read Market Data" --> D
+
+    B -- "Create Market" --> C
+    B -- "Resolve Market" --> D
+```

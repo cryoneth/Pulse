@@ -1,0 +1,44 @@
+import express from "express";
+import marketsRouter from "./markets";
+
+const app = express();
+const port = 3001;
+
+app.use(express.json());
+
+// CORS middleware
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  if (req.method === "OPTIONS") {
+    res.sendStatus(200);
+    return;
+  }
+  next();
+});
+
+// Market data endpoints
+app.use("/markets", marketsRouter);
+
+// Health check
+app.get("/health", (req, res) => {
+  res.json({ status: "ok" });
+});
+
+// Legacy Circle wallet placeholders
+app.post("/circle/wallets/create", (req, res) => {
+  res.json({ message: "Placeholder for creating a Circle wallet" });
+});
+
+app.get("/circle/wallets/:id", (req, res) => {
+  res.json({ message: `Placeholder for getting Circle wallet ${req.params.id}` });
+});
+
+app.post("/circle/gateway/mint", (req, res) => {
+  res.json({ message: "Placeholder for minting with Circle Gateway" });
+});
+
+app.listen(port, () => {
+  console.log(`API server listening at http://localhost:${port}`);
+});
