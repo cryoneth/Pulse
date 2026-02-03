@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import { StepTracker } from "./StepTracker";
 import type { PositionStep } from "@/lib/lifi";
 
-type FlowState = "confirming" | "executing" | "success" | "error";
+type FlowState = "confirming" | "executing" | "verifying" | "success" | "error";
 
 interface PositionFlowProps {
   visible: boolean;
@@ -22,6 +22,7 @@ interface PositionFlowProps {
   errorRecoverable?: boolean;
   successTxHash?: string;
   marketQuestion?: string;
+  confirmedShares?: string;
 }
 
 export function PositionFlow({
@@ -40,10 +41,11 @@ export function PositionFlow({
   errorRecoverable,
   successTxHash,
   marketQuestion,
+  confirmedShares,
 }: PositionFlowProps) {
   if (!visible) return null;
 
-  const isExecuting = flowState === "executing";
+  const isExecuting = flowState === "executing" || flowState === "verifying";
 
   return (
     <>
@@ -67,6 +69,8 @@ export function PositionFlow({
               ? "Position Live"
               : flowState === "error"
               ? "Something went wrong"
+              : flowState === "verifying"
+              ? "Verifying Position..."
               : "Confirm Position"}
           </h2>
           {!isExecuting && (
@@ -82,7 +86,7 @@ export function PositionFlow({
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto px-5 min-h-0">
           {/* Quote summary — shown in confirming/executing */}
-          {(flowState === "confirming" || flowState === "executing") && (
+          {(flowState === "confirming" || flowState === "executing" || flowState === "verifying") && (
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-5">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
@@ -128,6 +132,11 @@ export function PositionFlow({
                 <p className="text-sm text-emerald-600 font-semibold">
                   {side} &middot; {amountUSDC} USDC
                 </p>
+                {confirmedShares && (
+                  <p className="text-sm font-bold text-emerald-800 mt-1">
+                    {confirmedShares} {side} shares confirmed
+                  </p>
+                )}
                 {successTxHash && (
                   <a
                     href={`https://basescan.org/tx/${successTxHash}`}
@@ -181,6 +190,14 @@ export function PositionFlow({
             <div className="flex items-center justify-center py-2">
               <span className="text-sm text-gray-500 font-medium">
                 Processing...
+              </span>
+            </div>
+          )}
+
+          {flowState === "verifying" && (
+            <div className="flex items-center justify-center py-2">
+              <span className="text-sm text-violet-600 font-medium">
+                Verifying position on Base...
               </span>
             </div>
           )}

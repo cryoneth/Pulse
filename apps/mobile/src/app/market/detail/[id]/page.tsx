@@ -21,7 +21,12 @@ import {
   fetchQuote,
   executePosition,
   mapRouteToSteps,
+  findBestSource,
+  verifyPosition,
+  SOURCE_OPTIONS,
   type PositionStep,
+  type SourceOption,
+  type BestSourceResult,
 } from "@/lib/lifi";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Route = any;
@@ -51,47 +56,14 @@ const MARKET_ABI = [
   },
 ] as const;
 
-// Source chain/token options
-const SOURCE_OPTIONS = [
-  // Base
-  { label: "USDC on Base", chainId: 8453, chainName: "Base", tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as Address, tokenName: "USDC", decimals: 6 },
-  { label: "ETH on Base", chainId: 8453, chainName: "Base", tokenAddress: "0x0000000000000000000000000000000000000000" as Address, tokenName: "ETH", decimals: 18 },
-  { label: "WETH on Base", chainId: 8453, chainName: "Base", tokenAddress: "0x4200000000000000000000000000000000000006" as Address, tokenName: "WETH", decimals: 18 },
-  { label: "DAI on Base", chainId: 8453, chainName: "Base", tokenAddress: "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb" as Address, tokenName: "DAI", decimals: 18 },
-  // Polygon
-  { label: "USDC on Polygon", chainId: 137, chainName: "Polygon", tokenAddress: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359" as Address, tokenName: "USDC", decimals: 6 },
-  { label: "USDT on Polygon", chainId: 137, chainName: "Polygon", tokenAddress: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F" as Address, tokenName: "USDT", decimals: 6 },
-  { label: "POL on Polygon", chainId: 137, chainName: "Polygon", tokenAddress: "0x0000000000000000000000000000000000000000" as Address, tokenName: "POL", decimals: 18 },
-  { label: "WETH on Polygon", chainId: 137, chainName: "Polygon", tokenAddress: "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619" as Address, tokenName: "WETH", decimals: 18 },
-  // Arbitrum
-  { label: "USDC on Arbitrum", chainId: 42161, chainName: "Arbitrum", tokenAddress: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831" as Address, tokenName: "USDC", decimals: 6 },
-  { label: "USDT on Arbitrum", chainId: 42161, chainName: "Arbitrum", tokenAddress: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9" as Address, tokenName: "USDT", decimals: 6 },
-  { label: "ETH on Arbitrum", chainId: 42161, chainName: "Arbitrum", tokenAddress: "0x0000000000000000000000000000000000000000" as Address, tokenName: "ETH", decimals: 18 },
-  { label: "DAI on Arbitrum", chainId: 42161, chainName: "Arbitrum", tokenAddress: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1" as Address, tokenName: "DAI", decimals: 18 },
-  // Ethereum
-  { label: "ETH on Ethereum", chainId: 1, chainName: "Ethereum", tokenAddress: "0x0000000000000000000000000000000000000000" as Address, tokenName: "ETH", decimals: 18 },
-  { label: "USDC on Ethereum", chainId: 1, chainName: "Ethereum", tokenAddress: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" as Address, tokenName: "USDC", decimals: 6 },
-  { label: "USDT on Ethereum", chainId: 1, chainName: "Ethereum", tokenAddress: "0xdAC17F958D2ee523a2206206994597C13D831ec7" as Address, tokenName: "USDT", decimals: 6 },
-  { label: "DAI on Ethereum", chainId: 1, chainName: "Ethereum", tokenAddress: "0x6B175474E89094C44Da98b954EedeAC495271d0F" as Address, tokenName: "DAI", decimals: 18 },
-  { label: "WETH on Ethereum", chainId: 1, chainName: "Ethereum", tokenAddress: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2" as Address, tokenName: "WETH", decimals: 18 },
-  // Optimism
-  { label: "ETH on Optimism", chainId: 10, chainName: "Optimism", tokenAddress: "0x0000000000000000000000000000000000000000" as Address, tokenName: "ETH", decimals: 18 },
-  { label: "USDC on Optimism", chainId: 10, chainName: "Optimism", tokenAddress: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85" as Address, tokenName: "USDC", decimals: 6 },
-  { label: "USDT on Optimism", chainId: 10, chainName: "Optimism", tokenAddress: "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58" as Address, tokenName: "USDT", decimals: 6 },
-  // Avalanche
-  { label: "AVAX on Avalanche", chainId: 43114, chainName: "Avalanche", tokenAddress: "0x0000000000000000000000000000000000000000" as Address, tokenName: "AVAX", decimals: 18 },
-  { label: "USDC on Avalanche", chainId: 43114, chainName: "Avalanche", tokenAddress: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E" as Address, tokenName: "USDC", decimals: 6 },
-  // BSC
-  { label: "BNB on BSC", chainId: 56, chainName: "BSC", tokenAddress: "0x0000000000000000000000000000000000000000" as Address, tokenName: "BNB", decimals: 18 },
-  { label: "USDT on BSC", chainId: 56, chainName: "BSC", tokenAddress: "0x55d398326f99059fF775485246999027B3197955" as Address, tokenName: "USDT", decimals: 18 },
-  { label: "USDC on BSC", chainId: 56, chainName: "BSC", tokenAddress: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d" as Address, tokenName: "USDC", decimals: 18 },
-];
 
 type FlowState =
   | "input"
+  | "scanning"
   | "quoting"
   | "confirming"
   | "executing"
+  | "verifying"
   | "success"
   | "error";
 
@@ -135,6 +107,44 @@ export default function MarketDetailPage({
   const [errorMessage, setErrorMessage] = useState("");
   const [errorRecoverable, setErrorRecoverable] = useState(true);
   const [successTxHash, setSuccessTxHash] = useState<string | undefined>();
+
+  // Auto-detect best source
+  const [autoDetected, setAutoDetected] = useState<BestSourceResult | null>(null);
+  const [isAutoMode, setIsAutoMode] = useState(true);
+  const [showSourcePicker, setShowSourcePicker] = useState(false);
+  const [scanningSource, setScanningSource] = useState(false);
+
+  // Verified position shares
+  const [confirmedShares, setConfirmedShares] = useState<string | undefined>();
+
+  // Source search filter
+  const [sourceSearch, setSourceSearch] = useState("");
+
+  // Auto-detect best funding source when wallet is connected
+  useEffect(() => {
+    if (!address || !isAutoMode) return;
+    let cancelled = false;
+
+    setScanningSource(true);
+    findBestSource(address, parseFloat(amount) || 0)
+      .then((result) => {
+        if (cancelled) return;
+        if (result) {
+          setAutoDetected(result);
+          setSourceIndex(result.index);
+        }
+      })
+      .catch(() => {
+        // Silently fall back to manual selection
+      })
+      .finally(() => {
+        if (!cancelled) setScanningSource(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [address, isAutoMode, amount]);
 
   const { data: question } = useReadContract({
     address: isContract ? (id as Address) : undefined,
@@ -254,12 +264,64 @@ export default function MarketDetailPage({
     if (!route) return;
 
     setFlowState("executing");
+    setConfirmedShares(undefined);
+
+    const marketAddr = isContract
+      ? (id as Address)
+      : ("0x0000000000000000000000000000000000000001" as Address);
 
     await executePosition(
       route,
       (updatedSteps) => setSteps(updatedSteps),
-      (txHash) => {
+      async (txHash) => {
         setSuccessTxHash(txHash);
+
+        // Only verify on real contracts
+        if (isContract && address) {
+          setFlowState("verifying");
+          setSteps((prev) => [
+            ...prev,
+            { label: "Verifying position...", status: "verifying" as const },
+          ]);
+
+          try {
+            const verified = await verifyPosition({
+              marketAddress: marketAddr,
+              side,
+              owner: address,
+            });
+
+            if (verified) {
+              setConfirmedShares(verified.shares);
+              setSteps((prev) =>
+                prev.map((s) =>
+                  s.label === "Verifying position..."
+                    ? { ...s, label: `${verified.shares} ${side} shares received`, status: "complete" as const }
+                    : s
+                )
+              );
+            } else {
+              // Verification timed out but position may still be live
+              setSteps((prev) =>
+                prev.map((s) =>
+                  s.label === "Verifying position..."
+                    ? { ...s, label: "Position placed (verification pending)", status: "complete" as const }
+                    : s
+                )
+              );
+            }
+          } catch {
+            // Don't fail the whole flow for verification errors
+            setSteps((prev) =>
+              prev.map((s) =>
+                s.label === "Verifying position..."
+                  ? { ...s, label: "Position placed", status: "complete" as const }
+                  : s
+              )
+            );
+          }
+        }
+
         setFlowState("success");
       },
       (error, recoverable) => {
@@ -268,7 +330,7 @@ export default function MarketDetailPage({
         setFlowState("error");
       }
     );
-  }, [route]);
+  }, [route, isContract, id, address, side]);
 
   const handleRetry = useCallback(() => {
     handleExecute();
@@ -369,17 +431,123 @@ export default function MarketDetailPage({
             <label className="text-xs font-bold text-muted mb-1.5 block">
               Pay from
             </label>
-            <select
-              value={sourceIndex}
-              onChange={(e) => setSourceIndex(Number(e.target.value))}
-              className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {SOURCE_OPTIONS.map((opt, i) => (
-                <option key={i} value={i}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+
+            {isAutoMode && !showSourcePicker ? (
+              <div className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-between">
+                <span className="text-sm font-semibold text-gray-900">
+                  {scanningSource ? (
+                    <span className="text-gray-400">Scanning wallets...</span>
+                  ) : autoDetected ? (
+                    <>
+                      <span className="text-emerald-600">Best route:</span>{" "}
+                      {autoDetected.source.label}
+                    </>
+                  ) : (
+                    source.label
+                  )}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowSourcePicker(true)}
+                  className="text-xs text-blue-500 font-semibold hover:text-blue-700 ml-2"
+                >
+                  Change
+                </button>
+              </div>
+            ) : showSourcePicker ? (
+              <div className="border border-blue-400 rounded-lg overflow-hidden bg-white">
+                {/* Sticky header: Best route pill + search */}
+                <div className="sticky top-0 bg-white z-10 border-b border-gray-100">
+                  <div className="flex items-center gap-2 px-3 pt-2.5 pb-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAutoMode(true);
+                        setShowSourcePicker(false);
+                        setSourceSearch("");
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold hover:bg-emerald-100 transition-colors whitespace-nowrap"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Best route
+                    </button>
+                    <input
+                      type="text"
+                      value={sourceSearch}
+                      onChange={(e) => setSourceSearch(e.target.value)}
+                      placeholder="Search..."
+                      autoFocus
+                      className="flex-1 min-w-0 px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-semibold text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                    />
+                  </div>
+                </div>
+
+                {/* Scrollable token list */}
+                <div className="max-h-48 overflow-y-auto">
+                  {(() => {
+                    const terms = sourceSearch.toLowerCase().split(/\s+/).filter(Boolean);
+                    const filtered = SOURCE_OPTIONS
+                      .map((opt, i) => ({ opt, i }))
+                      .filter(({ opt }) => {
+                        if (terms.length === 0) return true;
+                        const haystack = `${opt.label} ${opt.chainName} ${opt.tokenName}`.toLowerCase();
+                        return terms.every((term) => haystack.includes(term));
+                      });
+
+                    if (filtered.length === 0) {
+                      return <p className="px-3 py-2 text-sm text-gray-400">No results</p>;
+                    }
+
+                    return filtered.map(({ opt, i }) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => {
+                          setSourceIndex(i);
+                          setIsAutoMode(false);
+                          setShowSourcePicker(false);
+                          setSourceSearch("");
+                        }}
+                        className={`w-full text-left px-3 py-2 text-sm font-semibold hover:bg-blue-50 transition-colors ${
+                          i === sourceIndex
+                            ? "bg-blue-50 text-blue-700"
+                            : "text-gray-900"
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ));
+                  })()}
+                </div>
+              </div>
+            ) : (
+              <div className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-between">
+                <span className="text-sm font-semibold text-gray-900">
+                  {source.label}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowSourcePicker(true)}
+                    className="text-xs text-gray-400 font-semibold hover:text-gray-600"
+                  >
+                    Change
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAutoMode(true);
+                      setShowSourcePicker(false);
+                    }}
+                    className="text-xs text-emerald-500 font-semibold hover:text-emerald-700"
+                  >
+                    Best route
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Amount Input */}
@@ -435,7 +603,8 @@ export default function MarketDetailPage({
               amountNum <= 0 ||
               belowMinimum ||
               !address ||
-              flowState === "quoting"
+              flowState === "quoting" ||
+              scanningSource
             }
             className={`w-full py-3.5 rounded-lg text-white font-bold text-base transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
               side === "YES"
@@ -445,6 +614,8 @@ export default function MarketDetailPage({
           >
             {flowState === "quoting"
               ? "Getting best route..."
+              : scanningSource
+              ? "Scanning wallets..."
               : !address
               ? "Connect wallet first"
               : "Confirm Position"}
@@ -472,9 +643,9 @@ export default function MarketDetailPage({
         flowState={
           flowState === "quoting"
             ? "confirming"
-            : flowState === "input"
+            : flowState === "input" || flowState === "scanning"
             ? "confirming"
-            : (flowState as "confirming" | "executing" | "success" | "error")
+            : (flowState as "confirming" | "executing" | "verifying" | "success" | "error")
         }
         errorMessage={errorMessage}
         errorRecoverable={errorRecoverable}
@@ -482,6 +653,7 @@ export default function MarketDetailPage({
         marketQuestion={
           typeof displayQuestion === "string" ? displayQuestion : undefined
         }
+        confirmedShares={confirmedShares}
       />
     </div>
   );

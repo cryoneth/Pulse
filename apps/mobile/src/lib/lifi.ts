@@ -10,7 +10,15 @@ import type { ContractCallsQuoteRequest } from "@lifi/types";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Route = any;
-import { encodeFunctionData, type Address, type Client } from "viem";
+import {
+  encodeFunctionData,
+  createPublicClient,
+  http,
+  formatUnits,
+  type Address,
+  type Client,
+} from "viem";
+import { base, polygon, arbitrum, mainnet, optimism, avalanche, bsc } from "viem/chains";
 
 let _initialized = false;
 
@@ -55,10 +63,67 @@ const BUY_FOR_ABI = [
 ] as const;
 
 // Base mainnet USDC
-const BASE_USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
-const BASE_CHAIN_ID = 8453;
+export const BASE_USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+export const BASE_CHAIN_ID = 8453;
 
-export type StepStatus = "pending" | "active" | "complete" | "error";
+// Chain configs for public client creation
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const CHAIN_MAP: Record<number, { chain: any }> = {
+  8453: { chain: base },
+  137: { chain: polygon },
+  42161: { chain: arbitrum },
+  1: { chain: mainnet },
+  10: { chain: optimism },
+  43114: { chain: avalanche },
+  56: { chain: bsc },
+};
+
+// Source chain/token options (exported for UI and scanning)
+export interface SourceOption {
+  label: string;
+  chainId: number;
+  chainName: string;
+  tokenAddress: Address;
+  tokenName: string;
+  decimals: number;
+}
+
+export const SOURCE_OPTIONS: SourceOption[] = [
+  // Base
+  { label: "USDC on Base", chainId: 8453, chainName: "Base", tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", tokenName: "USDC", decimals: 6 },
+  { label: "ETH on Base", chainId: 8453, chainName: "Base", tokenAddress: "0x0000000000000000000000000000000000000000", tokenName: "ETH", decimals: 18 },
+  { label: "WETH on Base", chainId: 8453, chainName: "Base", tokenAddress: "0x4200000000000000000000000000000000000006", tokenName: "WETH", decimals: 18 },
+  { label: "DAI on Base", chainId: 8453, chainName: "Base", tokenAddress: "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb", tokenName: "DAI", decimals: 18 },
+  // Polygon
+  { label: "USDC on Polygon", chainId: 137, chainName: "Polygon", tokenAddress: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", tokenName: "USDC", decimals: 6 },
+  { label: "USDT on Polygon", chainId: 137, chainName: "Polygon", tokenAddress: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F", tokenName: "USDT", decimals: 6 },
+  { label: "POL on Polygon", chainId: 137, chainName: "Polygon", tokenAddress: "0x0000000000000000000000000000000000000000", tokenName: "POL", decimals: 18 },
+  { label: "WETH on Polygon", chainId: 137, chainName: "Polygon", tokenAddress: "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619", tokenName: "WETH", decimals: 18 },
+  // Arbitrum
+  { label: "USDC on Arbitrum", chainId: 42161, chainName: "Arbitrum", tokenAddress: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", tokenName: "USDC", decimals: 6 },
+  { label: "USDT on Arbitrum", chainId: 42161, chainName: "Arbitrum", tokenAddress: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9", tokenName: "USDT", decimals: 6 },
+  { label: "ETH on Arbitrum", chainId: 42161, chainName: "Arbitrum", tokenAddress: "0x0000000000000000000000000000000000000000", tokenName: "ETH", decimals: 18 },
+  { label: "DAI on Arbitrum", chainId: 42161, chainName: "Arbitrum", tokenAddress: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1", tokenName: "DAI", decimals: 18 },
+  // Ethereum
+  { label: "ETH on Ethereum", chainId: 1, chainName: "Ethereum", tokenAddress: "0x0000000000000000000000000000000000000000", tokenName: "ETH", decimals: 18 },
+  { label: "USDC on Ethereum", chainId: 1, chainName: "Ethereum", tokenAddress: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", tokenName: "USDC", decimals: 6 },
+  { label: "USDT on Ethereum", chainId: 1, chainName: "Ethereum", tokenAddress: "0xdAC17F958D2ee523a2206206994597C13D831ec7", tokenName: "USDT", decimals: 6 },
+  { label: "DAI on Ethereum", chainId: 1, chainName: "Ethereum", tokenAddress: "0x6B175474E89094C44Da98b954EedeAC495271d0F", tokenName: "DAI", decimals: 18 },
+  { label: "WETH on Ethereum", chainId: 1, chainName: "Ethereum", tokenAddress: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", tokenName: "WETH", decimals: 18 },
+  // Optimism
+  { label: "ETH on Optimism", chainId: 10, chainName: "Optimism", tokenAddress: "0x0000000000000000000000000000000000000000", tokenName: "ETH", decimals: 18 },
+  { label: "USDC on Optimism", chainId: 10, chainName: "Optimism", tokenAddress: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85", tokenName: "USDC", decimals: 6 },
+  { label: "USDT on Optimism", chainId: 10, chainName: "Optimism", tokenAddress: "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58", tokenName: "USDT", decimals: 6 },
+  // Avalanche
+  { label: "AVAX on Avalanche", chainId: 43114, chainName: "Avalanche", tokenAddress: "0x0000000000000000000000000000000000000000", tokenName: "AVAX", decimals: 18 },
+  { label: "USDC on Avalanche", chainId: 43114, chainName: "Avalanche", tokenAddress: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E", tokenName: "USDC", decimals: 6 },
+  // BSC
+  { label: "BNB on BSC", chainId: 56, chainName: "BSC", tokenAddress: "0x0000000000000000000000000000000000000000", tokenName: "BNB", decimals: 18 },
+  { label: "USDT on BSC", chainId: 56, chainName: "BSC", tokenAddress: "0x55d398326f99059fF775485246999027B3197955", tokenName: "USDT", decimals: 18 },
+  { label: "USDC on BSC", chainId: 56, chainName: "BSC", tokenAddress: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d", tokenName: "USDC", decimals: 18 },
+];
+
+export type StepStatus = "pending" | "active" | "complete" | "error" | "verifying";
 
 export interface PositionStep {
   label: string;
@@ -338,4 +403,221 @@ export async function executePosition(
       onStep([...steps]);
     }
   }
+}
+
+// ---------------------------------------------------------------------------
+// Feature 1: Auto-detect best funding source
+// ---------------------------------------------------------------------------
+
+const ERC20_BALANCE_ABI = [
+  {
+    inputs: [{ name: "account", type: "address" }],
+    name: "balanceOf",
+    outputs: [{ name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+] as const;
+
+interface SourceWithBalance {
+  source: SourceOption;
+  index: number;
+  balance: number; // human-readable balance
+  balanceRaw: bigint;
+}
+
+function getPublicClient(chainId: number) {
+  const entry = CHAIN_MAP[chainId];
+  if (!entry) return null;
+  return createPublicClient({
+    chain: entry.chain,
+    transport: http(),
+  });
+}
+
+/** Scan all SOURCE_OPTIONS in parallel and return those with non-zero balance. */
+async function scanBalances(owner: Address): Promise<SourceWithBalance[]> {
+  const results = await Promise.allSettled(
+    SOURCE_OPTIONS.map(async (src, idx) => {
+      const client = getPublicClient(src.chainId);
+      if (!client) return null;
+
+      const isNative =
+        src.tokenAddress === "0x0000000000000000000000000000000000000000";
+
+      let balanceRaw: bigint;
+      if (isNative) {
+        balanceRaw = await client.getBalance({ address: owner });
+      } else {
+        balanceRaw = (await client.readContract({
+          address: src.tokenAddress,
+          abi: ERC20_BALANCE_ABI,
+          functionName: "balanceOf",
+          args: [owner],
+        })) as bigint;
+      }
+
+      const balance = parseFloat(formatUnits(balanceRaw, src.decimals));
+      if (balance <= 0) return null;
+
+      return { source: src, index: idx, balance, balanceRaw } as SourceWithBalance;
+    })
+  );
+
+  return results
+    .filter(
+      (r): r is PromiseFulfilledResult<SourceWithBalance | null> =>
+        r.status === "fulfilled" && r.value !== null
+    )
+    .map((r) => r.value!);
+}
+
+export interface BestSourceResult {
+  source: SourceOption;
+  index: number;
+  balance: number;
+  allWithBalance: SourceWithBalance[];
+}
+
+/**
+ * Find the best funding source for a given amount.
+ * 1. Scan all balances in parallel
+ * 2. Filter to those with sufficient balance
+ * 3. Prefer USDC on Base (no bridge needed), then stablecoins, then others
+ * 4. Return the best candidate
+ */
+export async function findBestSource(
+  owner: Address,
+  amountNeeded: number
+): Promise<BestSourceResult | null> {
+  const withBalance = await scanBalances(owner);
+  if (withBalance.length === 0) return null;
+
+  // Filter to those with enough balance
+  const sufficient = withBalance.filter((s) => s.balance >= amountNeeded);
+
+  // If nothing is sufficient, return the highest-balance option
+  const candidates = sufficient.length > 0 ? sufficient : withBalance;
+
+  // Scoring: lower is better
+  // - USDC on Base = 0 (no swap, no bridge)
+  // - Stablecoin on Base = 1 (swap only)
+  // - USDC on other chain = 2 (bridge only)
+  // - Stablecoin on other chain = 3 (swap + bridge)
+  // - Non-stable on Base = 4 (swap only)
+  // - Non-stable on other chain = 5 (swap + bridge)
+  function score(s: SourceWithBalance): number {
+    const isBase = s.source.chainId === BASE_CHAIN_ID;
+    const isStable = ["USDC", "USDT", "DAI"].includes(s.source.tokenName);
+    const isBaseUsdc =
+      isBase &&
+      s.source.tokenAddress.toLowerCase() === BASE_USDC.toLowerCase();
+
+    if (isBaseUsdc) return 0;
+    if (isBase && isStable) return 1;
+    if (!isBase && s.source.tokenName === "USDC") return 2;
+    if (!isBase && isStable) return 3;
+    if (isBase) return 4;
+    return 5;
+  }
+
+  candidates.sort((a, b) => {
+    const diff = score(a) - score(b);
+    if (diff !== 0) return diff;
+    // Tie-break: higher balance first
+    return b.balance - a.balance;
+  });
+
+  const best = candidates[0];
+  return {
+    source: best.source,
+    index: best.index,
+    balance: best.balance,
+    allWithBalance: withBalance,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Feature 2: Position verification — poll token balance after execution
+// ---------------------------------------------------------------------------
+
+const MARKET_TOKEN_ABI = [
+  {
+    inputs: [],
+    name: "yesToken",
+    outputs: [{ internalType: "address", name: "", type: "address" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "noToken",
+    outputs: [{ internalType: "address", name: "", type: "address" }],
+    stateMutability: "view",
+    type: "function",
+  },
+] as const;
+
+export interface VerifiedPosition {
+  shares: string; // human-readable share count (6 decimals like USDC)
+  sharesRaw: bigint;
+  tokenAddress: Address;
+  side: "YES" | "NO";
+}
+
+/**
+ * After a position is placed, verify by reading the share token balance on Base.
+ * Polls up to `maxAttempts` times with `intervalMs` delay between each.
+ */
+export async function verifyPosition(params: {
+  marketAddress: Address;
+  side: "YES" | "NO";
+  owner: Address;
+  previousBalance?: bigint;
+  maxAttempts?: number;
+  intervalMs?: number;
+}): Promise<VerifiedPosition | null> {
+  const {
+    marketAddress,
+    side,
+    owner,
+    previousBalance = BigInt(0),
+    maxAttempts = 10,
+    intervalMs = 3000,
+  } = params;
+
+  const client = getPublicClient(BASE_CHAIN_ID);
+  if (!client) return null;
+
+  // Get the token address for the chosen side
+  const tokenAddress = (await client.readContract({
+    address: marketAddress,
+    abi: MARKET_TOKEN_ABI,
+    functionName: side === "YES" ? "yesToken" : "noToken",
+  })) as Address;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const balance = (await client.readContract({
+      address: tokenAddress,
+      abi: ERC20_BALANCE_ABI,
+      functionName: "balanceOf",
+      args: [owner],
+    })) as bigint;
+
+    if (balance > previousBalance) {
+      const newShares = balance - previousBalance;
+      return {
+        shares: formatUnits(newShares, 6), // share tokens use 6 decimals (same as USDC)
+        sharesRaw: newShares,
+        tokenAddress,
+        side,
+      };
+    }
+
+    if (attempt < maxAttempts - 1) {
+      await new Promise((r) => setTimeout(r, intervalMs));
+    }
+  }
+
+  return null;
 }
