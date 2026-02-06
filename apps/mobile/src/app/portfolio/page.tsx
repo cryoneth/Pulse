@@ -410,19 +410,17 @@ export default function PortfolioPage() {
                 </div>
                 <h3 className="text-lg font-bold text-gray-900 mb-2">No Transactions Yet</h3>
                 <p className="text-sm text-gray-500 mb-4">
-                  Your transaction history will appear here
+                  Your transaction history will appear here after you make a trade
                 </p>
-                <a
-                  href={getAddressExplorerLink(BASE_CHAIN_ID, address!)}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <Link
+                  href="/market/list"
                   className="inline-flex items-center gap-2 text-sm text-blue-600 font-semibold hover:text-blue-700"
                 >
-                  View all on BaseScan
+                  Start trading
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
-                </a>
+                </Link>
               </div>
             ) : (
               <div className="flex flex-col gap-2">
@@ -480,18 +478,34 @@ export default function PortfolioPage() {
                   </a>
                 ))}
 
-                {/* View All Link */}
-                <a
-                  href={getAddressExplorerLink(BASE_CHAIN_ID, address!)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-2 flex items-center justify-center gap-2 py-3 text-sm text-blue-600 font-semibold hover:text-blue-700"
-                >
-                  View all transactions on BaseScan
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </a>
+                {/* View on Explorer Links - grouped by chain */}
+                {(() => {
+                  const chainIds = [...new Set(transactions.map(tx => tx.chainId))];
+                  return chainIds.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <p className="text-xs text-gray-500 text-center mb-2">View all transactions on:</p>
+                      <div className="flex flex-wrap justify-center gap-2">
+                        {chainIds.map(chainId => {
+                          const explorer = EXPLORERS[chainId] || EXPLORERS[8453];
+                          return (
+                            <a
+                              key={chainId}
+                              href={`${explorer.url}/address/${address}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-xs font-semibold text-gray-700 transition-colors"
+                            >
+                              {explorer.name}
+                              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                              </svg>
+                            </a>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>
