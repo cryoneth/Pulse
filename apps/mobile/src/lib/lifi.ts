@@ -1,12 +1,9 @@
 import {
   createConfig,
   EVM,
-  getContractCallsQuote,
   executeRoute,
-  convertQuoteToRoute,
 } from "@lifi/sdk";
 import type { RouteExtended } from "@lifi/sdk";
-import type { ContractCallsQuoteRequest } from "@lifi/types";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Route = any;
@@ -171,59 +168,21 @@ export interface QuoteParams {
   fromDecimals?: number; // decimals for source token (default 6 for USDC)
 }
 
-export async function getPositionQuote(
-  params: QuoteParams
-): Promise<ContractCallsQuoteRequest> {
-  const amountRaw = BigInt(
-    Math.round(parseFloat(params.amountUSDC) * 1e6)
-  ).toString();
-
-  const callData = encodeFunctionData({
-    abi: BUY_FOR_ABI,
-    functionName: "buyFor",
-    args: [BigInt(amountRaw), params.side === "YES", params.recipient],
-  });
-
-  const quoteRequest: ContractCallsQuoteRequest = {
-    fromChain: params.fromChainId,
-    fromToken: params.fromTokenAddress,
-    fromAddress: params.recipient,
-    toChain: BASE_CHAIN_ID,
-    toToken: BASE_USDC,
-    toAmount: amountRaw,
-    contractCalls: [
-      {
-        fromAmount: amountRaw,
-        fromTokenAddress: BASE_USDC,
-        toContractAddress: params.marketAddress,
-        toContractCallData: callData,
-        toContractGasLimit: "300000",
-      },
-    ],
-  };
-
-  return quoteRequest;
-}
-
 export async function fetchQuote(params: QuoteParams): Promise<Route> {
   // Check if source is already USDC on Base (no swap/bridge needed)
   const isSameToken =
     params.fromChainId === BASE_CHAIN_ID &&
     params.fromTokenAddress.toLowerCase() === BASE_USDC.toLowerCase();
 
-  // If no real market contract deployed, fall back to a simple swap+bridge
-  // so the LI.FI flow can be tested end-to-end
   const isRealContract =
     params.marketAddress !== ("0x0000000000000000000000000000000000000001" as Address);
 
   // Special case: USDC on Base with real contract
-  // LI.FI can't handle this (no swap/bridge needed), so we return a special route
-  // that will be executed directly via wagmi
   if (isSameToken && isRealContract) {
     return {
       steps: [],
       id: "direct-base-usdc",
-      _directParams: {
+      _marketParams: {
         marketAddress: params.marketAddress,
         side: params.side,
         amountUSDC: params.amountUSDC,
@@ -237,14 +196,7 @@ export async function fetchQuote(params: QuoteParams): Promise<Route> {
     return { steps: [], id: "same-chain-same-token" };
   }
 
-  if (isRealContract) {
-    const request = await getPositionQuote(params);
-    const quote = await getContractCallsQuote(request);
-    return convertQuoteToRoute(quote);
-  }
-
-  // Fallback: use getRoutes for a plain swap/bridge to USDC on Base
-  // This lets you test the full LI.FI flow before deploying the market contract
+  // Get a standard route to USDC on Base
   const { getRoutes } = await import("@lifi/sdk");
   const decimals = params.fromDecimals ?? 6;
   const fromAmountRaw = BigInt(
@@ -258,14 +210,29 @@ export async function fetchQuote(params: QuoteParams): Promise<Route> {
     fromAmount: fromAmountRaw,
     toChainId: BASE_CHAIN_ID,
     toTokenAddress: BASE_USDC,
+    toAddress: params.recipient,
+    options: {
+      slippage: 0.03,
+    },
   });
 
   if (!result.routes || result.routes.length === 0) {
-    throw new Error("No routes found for this token/chain combination");
+    throw new Error("No routes found for this position");
   }
 
-  return result.routes[0];
-}
+      const route = result.routes[0] as any;
+      
+      // Attach custom metadata for manual execution afterward
+      if (isRealContract) {
+        route._marketParams = {
+          marketAddress: params.marketAddress,
+          side: params.side,
+          amountUSDC: params.amountUSDC,
+          recipient: params.recipient,
+        };
+      }
+  
+      return route;}
 
 export type StepCallback = (steps: PositionStep[]) => void;
 
@@ -281,8 +248,8 @@ export function getDirectRouteParams(route: Route): {
   amountUSDC: string;
   recipient: Address;
 } | null {
-  if (route.id === "direct-base-usdc" && route._directParams) {
-    return route._directParams;
+  if (route.id === "direct-base-usdc" && route._marketParams) {
+    return route._marketParams;
   }
   return null;
 }
@@ -310,12 +277,15 @@ export function mapRouteToSteps(route: Route): PositionStep[] {
     }
   }
 
-  // Always add the contract call step at the end
-  steps.push({ label: "Placing position", status: "pending" });
+  // If there are market params, always add the contract call steps at the end
+  if (route._marketParams) {
+    steps.push({ label: "Approving USDC on Base", status: "pending" });
+    steps.push({ label: "Placing position", status: "pending" });
+  }
 
   // If same-chain, ensure at least approval + position
-  if (steps.length === 1) {
-    steps.unshift({ label: "Approving USDC", status: "pending" });
+  if (steps.length === 0) {
+    steps.push({ label: "Done", status: "complete" });
   }
 
   return steps;
@@ -325,7 +295,15 @@ export async function executePosition(
   route: Route,
   onStep: StepCallback,
   onComplete: (txHash?: string) => void,
-  onError: (error: string, recoverable: boolean) => void
+  onError: (error: string, recoverable: boolean) => void,
+  // Helper to call market contract (since we can't use wagmi hooks here)
+  callContract: (params: {
+    marketAddress: Address;
+    side: "YES" | "NO";
+    amountUSDC: string;
+    recipient: Address;
+    onStepUpdate: (label: string, status: StepStatus, txHash?: string) => void;
+  }) => Promise<string>
 ): Promise<void> {
   const steps = mapRouteToSteps(route);
   let currentStepIndex = 0;
@@ -347,130 +325,59 @@ export async function executePosition(
   }
 
   try {
-    await executeRoute(route, {
-      updateRouteHook(updatedRoute: RouteExtended) {
-        const lifiSteps = updatedRoute.steps || [];
-        let allDone = true;
+    // 1. Execute LI.FI Swap/Bridge if needed
+    if (route.steps && route.steps.length > 0) {
+      await executeRoute(route, {
+        updateRouteHook(updatedRoute: RouteExtended) {
+          const lifiSteps = updatedRoute.steps || [];
+          for (let i = 0; i < lifiSteps.length; i++) {
+            const lifiStep = lifiSteps[i];
+            const execution = lifiStep.execution;
+            if (!execution) continue;
 
-        for (let i = 0; i < lifiSteps.length; i++) {
-          const lifiStep = lifiSteps[i];
-          const execution = lifiStep.execution;
-
-          if (!execution) continue;
-
-          const mappedIndex = Math.min(i, steps.length - 2); // last step is contract call
-
-          if (execution.status === "DONE") {
-            if (mappedIndex <= steps.length - 2) {
+            const mappedIndex = i;
+            if (execution.status === "DONE") {
               steps[mappedIndex].status = "complete";
-              const lastProcess =
-                execution.process?.[execution.process.length - 1];
+              const lastProcess = execution.process?.[execution.process.length - 1];
               if (lastProcess?.txHash) {
                 steps[mappedIndex].txHash = lastProcess.txHash;
                 steps[mappedIndex].txLink = lastProcess.txLink;
               }
+            } else if (execution.status === "FAILED") {
+              steps[mappedIndex].status = "error";
+              steps[mappedIndex].message = execution.process?.[execution.process.length - 1]?.message || "Step failed";
+            } else if (execution.status === "PENDING") {
+              steps[mappedIndex].status = "active";
             }
-          } else if (execution.status === "FAILED") {
-            steps[mappedIndex].status = "error";
-            steps[mappedIndex].message =
-              execution.process?.[execution.process.length - 1]?.message ||
-              "Step failed";
-            allDone = false;
-          } else if (execution.status === "PENDING") {
-            steps[mappedIndex].status = "active";
-            allDone = false;
-            const lastProcess =
-              execution.process?.[execution.process.length - 1];
-            if (lastProcess?.txHash) {
-              steps[mappedIndex].txHash = lastProcess.txHash;
-              steps[mappedIndex].txLink = lastProcess.txLink;
-            }
-          } else {
-            allDone = false;
           }
-        }
+          onStep([...steps]);
+        },
+      });
+    }
 
-        // Advance currentStepIndex
-        while (
-          currentStepIndex < steps.length - 1 &&
-          steps[currentStepIndex].status === "complete"
-        ) {
-          currentStepIndex++;
-          if (steps[currentStepIndex].status === "pending") {
-            steps[currentStepIndex].status = "active";
-          }
-        }
-
-        onStep([...steps]);
-
-        // If all LI.FI steps done, mark contract call as active then complete
-        if (allDone && lifiSteps.length > 0) {
-          const lastStep = steps[steps.length - 1];
-          if (lastStep.status !== "complete") {
-            lastStep.status = "complete";
-            const lastLifiStep = lifiSteps[lifiSteps.length - 1];
-            const lastProcess =
-              lastLifiStep.execution?.process?.[
-                lastLifiStep.execution.process.length - 1
-              ];
-            if (lastProcess?.txHash) {
-              lastStep.txHash = lastProcess.txHash;
-              lastStep.txLink = lastProcess.txLink;
-            }
+    // 2. Execute Market Contract Call if parameters exist
+    if (route._marketParams) {
+      const marketTxHash = await callContract({
+        ...route._marketParams,
+        onStepUpdate: (label, status, txHash) => {
+          const step = steps.find(s => s.label === label);
+          if (step) {
+            step.status = status;
+            if (txHash) step.txHash = txHash;
             onStep([...steps]);
           }
         }
-      },
-    });
-
-    // Mark all steps complete
-    for (const step of steps) {
-      if (step.status !== "error") {
-        step.status = "complete";
-      }
-    }
-    onStep([...steps]);
-
-    // Find the last tx hash
-    const lastCompletedStep = [...steps]
-      .reverse()
-      .find((s) => s.txHash);
-    onComplete(lastCompletedStep?.txHash);
-  } catch (err: unknown) {
-    const message =
-      err instanceof Error ? err.message : "Unknown error occurred";
-
-    // Parse error types
-    if (
-      message.includes("rejected") ||
-      message.includes("denied") ||
-      message.includes("cancelled")
-    ) {
-      onError("Transaction cancelled", true);
-    } else if (
-      message.includes("expired") ||
-      message.includes("quote")
-    ) {
-      onError("Quote expired — please re-quote", false);
-    } else if (message.includes("insufficient") && message.includes("gas")) {
-      onError("Insufficient gas — check your wallet balance", true);
-    } else if (message.includes("insufficient")) {
-      onError("Insufficient balance", true);
-    } else if (message.includes("revert")) {
-      onError(
-        "Position couldn't open. Funds are in your wallet on Base.",
-        true
-      );
+      });
+      onComplete(marketTxHash);
     } else {
-      onError(message, true);
+      // Find the last tx hash from LI.FI
+      const lastCompletedStep = [...steps].reverse().find((s) => s.txHash);
+      onComplete(lastCompletedStep?.txHash);
     }
 
-    // Mark current step as error
-    if (currentStepIndex < steps.length) {
-      steps[currentStepIndex].status = "error";
-      steps[currentStepIndex].message = message;
-      onStep([...steps]);
-    }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error occurred";
+    onError(message, true);
   }
 }
 
@@ -560,13 +467,6 @@ export interface BestSourceResult {
   allWithBalance: SourceWithBalance[];
 }
 
-/**
- * Find the best funding source for a given amount.
- * 1. Scan all balances in parallel
- * 2. Filter to those with sufficient balance
- * 3. Prefer USDC on Base (no bridge needed), then stablecoins, then others
- * 4. Return the best candidate
- */
 export async function findBestSource(
   owner: Address,
   amountNeeded: number
@@ -574,19 +474,9 @@ export async function findBestSource(
   const withBalance = await scanBalances(owner);
   if (withBalance.length === 0) return null;
 
-  // Filter to those with enough balance
   const sufficient = withBalance.filter((s) => s.balance >= amountNeeded);
-
-  // If nothing is sufficient, return the highest-balance option
   const candidates = sufficient.length > 0 ? sufficient : withBalance;
 
-  // Scoring: lower is better
-  // - USDC on Base = 0 (no swap, no bridge)
-  // - Stablecoin on Base = 1 (swap only)
-  // - USDC on other chain = 2 (bridge only)
-  // - Stablecoin on other chain = 3 (swap + bridge)
-  // - Non-stable on Base = 4 (swap only)
-  // - Non-stable on other chain = 5 (swap + bridge)
   function score(s: SourceWithBalance): number {
     const isBase = s.source.chainId === BASE_CHAIN_ID;
     const isStable = ["USDC", "USDT", "DAI"].includes(s.source.tokenName);
@@ -605,7 +495,6 @@ export async function findBestSource(
   candidates.sort((a, b) => {
     const diff = score(a) - score(b);
     if (diff !== 0) return diff;
-    // Tie-break: higher balance first
     return b.balance - a.balance;
   });
 
@@ -640,16 +529,12 @@ export const MARKET_TOKEN_ABI = [
 ] as const;
 
 export interface VerifiedPosition {
-  shares: string; // human-readable share count (6 decimals like USDC)
+  shares: string;
   sharesRaw: bigint;
   tokenAddress: Address;
   side: "YES" | "NO";
 }
 
-/**
- * After a position is placed, verify by reading the share token balance on Base.
- * Polls up to `maxAttempts` times with `intervalMs` delay between each.
- */
 export async function verifyPosition(params: {
   marketAddress: Address;
   side: "YES" | "NO";
@@ -670,7 +555,6 @@ export async function verifyPosition(params: {
   const client = getPublicClient(BASE_CHAIN_ID);
   if (!client) return null;
 
-  // Get the token address for the chosen side
   const tokenAddress = (await client.readContract({
     address: marketAddress,
     abi: MARKET_TOKEN_ABI,
@@ -688,7 +572,7 @@ export async function verifyPosition(params: {
     if (balance > previousBalance) {
       const newShares = balance - previousBalance;
       return {
-        shares: formatUnits(newShares, 6), // share tokens use 6 decimals (same as USDC)
+        shares: formatUnits(newShares, 6),
         sharesRaw: newShares,
         tokenAddress,
         side,

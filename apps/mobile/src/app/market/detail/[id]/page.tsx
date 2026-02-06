@@ -554,7 +554,7 @@ export default function MarketDetailPage({
       }
     }
 
-    // Standard LI.FI execution for cross-chain/swap routes
+    // Standard execution: LI.FI Swap/Bridge + Manual Contract Call
     await executePosition(
       route,
       (updatedSteps) => setSteps(updatedSteps),
@@ -591,7 +591,6 @@ export default function MarketDetailPage({
                 )
               );
             } else {
-              // Verification timed out but position may still be live
               setSteps((prev) =>
                 prev.map((s) =>
                   s.label === "Verifying position..."
@@ -601,7 +600,6 @@ export default function MarketDetailPage({
               );
             }
           } catch {
-            // Don't fail the whole flow for verification errors
             setSteps((prev) =>
               prev.map((s) =>
                 s.label === "Verifying position..."
@@ -614,13 +612,42 @@ export default function MarketDetailPage({
 
         setFlowState("success");
       },
-      (error, recoverable) => {
+      (error) => {
         setErrorMessage(error);
-        setErrorRecoverable(recoverable);
+        setErrorRecoverable(true);
         setFlowState("error");
+      },
+      // callContract helper implementation
+      async (params) => {
+        const { marketAddress, side, amountUSDC, recipient, onStepUpdate } = params;
+        const amountRaw = parseUnits(amountUSDC, 6);
+
+        // Step 1: Approve USDC
+        onStepUpdate("Approving USDC on Base", "active");
+        await writeContractAsync({
+          address: BASE_USDC as Address,
+          abi: ERC20_APPROVE_ABI,
+          functionName: "approve",
+          args: [marketAddress, amountRaw],
+          chainId: BASE_CHAIN_ID,
+        });
+        onStepUpdate("Approving USDC on Base", "complete");
+
+        // Step 2: Call buyFor
+        onStepUpdate("Placing position", "active");
+        const txHash = await writeContractAsync({
+          address: marketAddress,
+          abi: BUY_FOR_ABI,
+          functionName: "buyFor",
+          args: [amountRaw, side === "YES", recipient],
+          chainId: BASE_CHAIN_ID,
+        });
+        onStepUpdate("Placing position", "complete", txHash);
+
+        return txHash;
       }
     );
-  }, [route, isContract, id, address, side, writeContractAsync]);
+  }, [route, isContract, id, address, side, writeContractAsync, source.chainId, amount]);
 
   const handleRetry = useCallback(() => {
     handleExecute();
