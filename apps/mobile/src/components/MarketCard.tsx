@@ -2,51 +2,54 @@ import Link from "next/link";
 import { Market } from "@/lib/types";
 
 export function MarketCard({ market }: { market: Market }) {
-  // Simple category icons
-  const catIcon = market.category === 'sports' ? '⚽' : 
-                  market.category === 'crypto' ? '₿' : 
-                  market.category === 'pop-culture' ? '🎤' : '🌐';
+  const categoryConfig = {
+    sports: { label: "Sports", bg: "bg-orange-100", text: "text-orange-700" },
+    crypto: { label: "Crypto", bg: "bg-violet-100", text: "text-violet-700" },
+    "pop-culture": { label: "Culture", bg: "bg-pink-100", text: "text-pink-700" },
+    politics: { label: "Politics", bg: "bg-blue-100", text: "text-blue-700" },
+  };
+
+  const cat = categoryConfig[market.category] || categoryConfig.politics;
 
   return (
-    <Link 
+    <Link
       href={`/market/detail/${market.id}`}
-      className="block bg-white border border-gray-200 rounded-lg p-3 mb-2 active:bg-gray-50 transition-colors"
+      className="block bg-white rounded-xl p-4 mb-3 shadow-sm hover:shadow-md active:shadow-sm border border-gray-100 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0"
     >
+      {/* Category Badge + Volume */}
+      <div className="flex items-center justify-between mb-3">
+        <span
+          className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${cat.bg} ${cat.text}`}
+        >
+          {cat.label}
+        </span>
+        <span className="text-xs font-medium text-gray-400">
+          ${(market.volume / 1000).toFixed(0)}k vol
+        </span>
+      </div>
+
+      {/* Question */}
+      <h3 className="text-base font-semibold text-gray-900 leading-snug mb-4 line-clamp-2">
+        {market.question}
+      </h3>
+
+      {/* Odds Buttons */}
       <div className="flex gap-3">
-        {/* Left: Icon & Info */}
-        <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs">{catIcon}</span>
-                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-                    {market.category}
-                </span>
-                <span className="text-[10px] font-medium text-gray-400">
-                    ${(market.volume / 1000).toFixed(1)}k
-                </span>
-            </div>
-            <h3 className="text-sm font-semibold text-gray-900 leading-snug line-clamp-2 pr-2">
-                {market.question}
-            </h3>
-        </div>
+        {/* YES */}
+        <button className="flex-1 py-3 bg-gradient-to-b from-emerald-400 to-emerald-500 rounded-lg text-white font-bold shadow-sm hover:shadow-md hover:from-emerald-500 hover:to-emerald-600 active:shadow-sm transition-all duration-150">
+          <span className="text-xl">{market.yesPrice}¢</span>
+          <span className="block text-[10px] font-semibold opacity-80 mt-0.5">
+            YES
+          </span>
+        </button>
 
-        {/* Right: Action Buttons (Visual representation of odds) */}
-        <div className="flex gap-2 items-center min-w-[130px]">
-            {/* YES Button */}
-            <div className="flex-1 flex flex-col gap-1">
-                <button className="w-full py-2 bg-emerald-500 rounded text-white text-xs font-bold shadow-sm border border-emerald-600 active:translate-y-px">
-                    {market.yesPrice}%
-                </button>
-                <div className="text-[9px] text-emerald-600 font-bold text-center uppercase">Yes</div>
-            </div>
-
-            {/* NO Button */}
-            <div className="flex-1 flex flex-col gap-1">
-                <button className="w-full py-2 bg-red-500 rounded text-white text-xs font-bold shadow-sm border border-red-600 active:translate-y-px">
-                    {market.noPrice}%
-                </button>
-                 <div className="text-[9px] text-red-600 font-bold text-center uppercase">No</div>
-            </div>
-        </div>
+        {/* NO */}
+        <button className="flex-1 py-3 bg-gradient-to-b from-red-400 to-red-500 rounded-lg text-white font-bold shadow-sm hover:shadow-md hover:from-red-500 hover:to-red-600 active:shadow-sm transition-all duration-150">
+          <span className="text-xl">{market.noPrice}¢</span>
+          <span className="block text-[10px] font-semibold opacity-80 mt-0.5">
+            NO
+          </span>
+        </button>
       </div>
     </Link>
   );

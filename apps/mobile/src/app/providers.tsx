@@ -30,13 +30,14 @@ export const config = createConfig({
   chains: [base, polygon, mainnet, arbitrum, optimism, avalanche, bsc],
   connectors,
   transports: {
-    [base.id]: http(),
-    [polygon.id]: http(),
-    [mainnet.id]: http(),
-    [arbitrum.id]: http(),
-    [optimism.id]: http(),
-    [avalanche.id]: http(),
-    [bsc.id]: http(),
+    // Using browser-compatible public RPCs (CORS-enabled)
+    [base.id]: http("https://base.publicnode.com"),
+    [polygon.id]: http("https://polygon-bor-rpc.publicnode.com"),
+    [mainnet.id]: http("https://ethereum-rpc.publicnode.com"),
+    [arbitrum.id]: http("https://arbitrum-one-rpc.publicnode.com"),
+    [optimism.id]: http("https://optimism-rpc.publicnode.com"),
+    [avalanche.id]: http("https://avalanche-c-chain-rpc.publicnode.com"),
+    [bsc.id]: http("https://bsc-rpc.publicnode.com"),
   },
 });
 

@@ -3,38 +3,67 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+// Clean SVG icons
+const HomeIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+    <polyline points="9 22 9 12 15 12 15 22" />
+  </svg>
+);
+
+const ChartIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="18" y1="20" x2="18" y2="10" />
+    <line x1="12" y1="20" x2="12" y2="4" />
+    <line x1="6" y1="20" x2="6" y2="14" />
+  </svg>
+);
+
+const PortfolioIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+  </svg>
+);
+
+const WalletIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
+    <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
+    <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
+  </svg>
+);
+
 export function BottomNav() {
   const pathname = usePathname();
 
   const navItems = [
-    { label: "Markets", href: "/market/list", icon: "M3 3h18v18H3z" }, // Square (placeholder)
-    { label: "Portfolio", href: "/portfolio", icon: "M12 2l10 18H2L12 2z" }, // Triangle
-    { label: "Funds", href: "/fund", icon: "M12 2a10 10 0 100 20 10 10 0 000-20z" }, // Circle
+    { label: "Home", href: "/", icon: HomeIcon },
+    { label: "Markets", href: "/market/list", icon: ChartIcon },
+    { label: "Portfolio", href: "/portfolio", icon: PortfolioIcon },
+    { label: "Funds", href: "/fund", icon: WalletIcon },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 pb-safe z-50">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200/80 pb-safe z-50">
       <div className="flex justify-around items-center h-16">
-        <Link href="/" className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${pathname === '/' ? 'text-blue-600' : 'text-gray-400'}`}>
-             <span className="text-xl font-bold">🏠</span>
-             <span className="text-[10px] font-bold uppercase tracking-wide">Home</span>
-        </Link>
-        
         {navItems.map((item) => {
-          const isActive = pathname.startsWith(item.href);
+          const isActive =
+            item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+          const Icon = item.icon;
+
           return (
             <Link
               key={item.label}
               href={item.href}
-              className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${
-                isActive ? "text-blue-600" : "text-gray-400 hover:text-gray-600"
+              className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors duration-200 ${
+                isActive
+                  ? "text-blue-600"
+                  : "text-gray-400 hover:text-gray-600"
               }`}
             >
-              {/* Simple geometric icons using text/emoji for simplicity in this demo */}
-              <span className="text-xl font-bold">
-                  {item.label === 'Markets' ? '📊' : item.label === 'Portfolio' ? '💼' : '💰'}
-              </span>
-              <span className="text-[10px] font-bold uppercase tracking-wide">
+              <Icon className={`w-6 h-6 transition-transform duration-200 ${isActive ? "scale-110" : ""}`} />
+              <span className="text-[10px] font-semibold uppercase tracking-wide">
                 {item.label}
               </span>
             </Link>

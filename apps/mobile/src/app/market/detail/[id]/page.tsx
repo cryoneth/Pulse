@@ -133,18 +133,34 @@ export default function MarketDetailPage({
   // Source search filter
   const [sourceSearch, setSourceSearch] = useState("");
 
-  // Auto-detect best funding source when wallet is connected
+  // Test mode - allows positions under $5
+  const [testMode, setTestMode] = useState(false);
+
+  // Debounced amount for auto-detect (avoid scanning on every keystroke)
+  const [debouncedAmount, setDebouncedAmount] = useState(0);
+
   useEffect(() => {
-    if (!address || !isAutoMode) return;
+    const timer = setTimeout(() => {
+      setDebouncedAmount(parseFloat(amount) || 0);
+    }, 500); // 500ms debounce
+    return () => clearTimeout(timer);
+  }, [amount]);
+
+  // Auto-detect best funding source when wallet is connected or amount changes
+  useEffect(() => {
+    if (!address) return;
     let cancelled = false;
 
     setScanningSource(true);
-    findBestSource(address, parseFloat(amount) || 0)
+    findBestSource(address, debouncedAmount)
       .then((result) => {
         if (cancelled) return;
         if (result) {
           setAutoDetected(result);
-          setSourceIndex(result.index);
+          // Only auto-switch source if in auto mode
+          if (isAutoMode) {
+            setSourceIndex(result.index);
+          }
         }
       })
       .catch(() => {
@@ -157,18 +173,20 @@ export default function MarketDetailPage({
     return () => {
       cancelled = true;
     };
-  }, [address, isAutoMode, amount]);
+  }, [address, debouncedAmount, isAutoMode]);
 
-  const { data: question } = useReadContract({
+  const { data: question, isError: questionError } = useReadContract({
     address: isContract ? (id as Address) : undefined,
     abi: MARKET_ABI,
     functionName: "question",
+    chainId: BASE_CHAIN_ID,
   });
 
   const { data: endTime } = useReadContract({
     address: isContract ? (id as Address) : undefined,
     abi: MARKET_ABI,
     functionName: "endTime",
+    chainId: BASE_CHAIN_ID,
   });
 
   // Read YES/NO token addresses from the market contract
@@ -472,12 +490,32 @@ export default function MarketDetailPage({
 
   const amountNum = parseFloat(amount) || 0;
   const insufficientHint = amountNum <= 0 && amount.length > 0;
-  const belowMinimum = amountNum > 0 && amountNum < 5;
+  const belowMinimum = !testMode && amountNum > 0 && amountNum < 5;
 
+  if (!displayQuestion && isContract && questionError)
+    return (
+      <div className="p-8 text-center">
+        <p className="text-red-500 font-semibold mb-2">Failed to load market</p>
+        <p className="text-sm text-gray-500 mb-4">RPC connection issue. Please try again.</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold"
+        >
+          Retry
+        </button>
+      </div>
+    );
   if (!displayQuestion && isContract)
-    return <div className="p-8 text-center text-muted">Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-sm text-gray-500">Loading market...</p>
+        </div>
+      </div>
+    );
   if (!mockMarket && !isContract)
-    return <div className="p-8 text-center text-muted">Market not found</div>;
+    return <div className="p-8 text-center text-gray-500">Market not found</div>;
 
   return (
     <div className="min-h-screen bg-page text-main pb-32">
@@ -615,25 +653,46 @@ export default function MarketDetailPage({
                       return <p className="px-3 py-2 text-sm text-gray-400">No results</p>;
                     }
 
-                    return filtered.map(({ opt, i }) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => {
-                          setSourceIndex(i);
-                          setIsAutoMode(false);
-                          setShowSourcePicker(false);
-                          setSourceSearch("");
-                        }}
-                        className={`w-full text-left px-3 py-2 text-sm font-semibold hover:bg-blue-50 transition-colors ${
-                          i === sourceIndex
-                            ? "bg-blue-50 text-blue-700"
-                            : "text-gray-900"
-                        }`}
-                      >
-                        {opt.label}
-                      </button>
-                    ));
+                    return filtered.map(({ opt, i }) => {
+                      // Find balance for this source if available
+                      const balanceInfo = autoDetected?.allWithBalance?.find(
+                        (b) => b.index === i
+                      );
+                      const hasEnough = balanceInfo && balanceInfo.balance >= debouncedAmount;
+                      const isRecommended = autoDetected?.index === i;
+
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => {
+                            setSourceIndex(i);
+                            setIsAutoMode(false);
+                            setShowSourcePicker(false);
+                            setSourceSearch("");
+                          }}
+                          className={`w-full text-left px-3 py-2 text-sm font-semibold hover:bg-blue-50 transition-colors flex justify-between items-center ${
+                            i === sourceIndex
+                              ? "bg-blue-50 text-blue-700"
+                              : "text-gray-900"
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            {opt.label}
+                            {isRecommended && (
+                              <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full">
+                                Best
+                              </span>
+                            )}
+                          </span>
+                          {balanceInfo && (
+                            <span className={`text-xs ${hasEnough ? "text-emerald-600" : "text-gray-400"}`}>
+                              ${balanceInfo.balance.toFixed(2)}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    });
                   })()}
                 </div>
               </div>
@@ -700,6 +759,38 @@ export default function MarketDetailPage({
                 Enter a valid amount
               </span>
             )}
+            {/* Insufficient balance warning with suggestions */}
+            {formattedBalance !== null && amountNum > parseFloat(formattedBalance) && amountNum > 0 && (
+              <div className="mt-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5">
+                <p className="text-xs font-semibold text-red-700 mb-1">
+                  Insufficient balance on {source.chainName}
+                </p>
+                {autoDetected?.allWithBalance && (() => {
+                  const better = autoDetected.allWithBalance.find(s => s.balance >= amountNum);
+                  const highest = autoDetected.allWithBalance.reduce((a, b) => a.balance > b.balance ? a : b, autoDetected.allWithBalance[0]);
+                  if (better) {
+                    return (
+                      <button
+                        onClick={() => {
+                          setSourceIndex(better.index);
+                          setIsAutoMode(false);
+                        }}
+                        className="text-xs text-blue-600 font-semibold hover:underline"
+                      >
+                        Use {better.source.tokenName} on {better.source.chainName} (${better.balance.toFixed(2)} available)
+                      </button>
+                    );
+                  } else if (highest && highest.balance > 0) {
+                    return (
+                      <p className="text-xs text-gray-600">
+                        Max available: ${highest.balance.toFixed(2)} {highest.source.tokenName} on {highest.source.chainName}
+                      </p>
+                    );
+                  }
+                  return null;
+                })()}
+              </div>
+            )}
             {belowMinimum && (
               <div className="mt-2 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
                 <span className="text-amber-500 text-sm leading-none mt-0.5">&#9888;</span>
@@ -708,6 +799,26 @@ export default function MarketDetailPage({
                 </p>
               </div>
             )}
+
+            {/* Test Mode Toggle */}
+            <div className="mt-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-gray-500">Test Mode</span>
+                <span className="text-[10px] text-gray-400">(no $5 min)</span>
+              </div>
+              <button
+                onClick={() => setTestMode(!testMode)}
+                className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${
+                  testMode ? "bg-violet-500" : "bg-gray-300"
+                }`}
+              >
+                <span
+                  className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${
+                    testMode ? "translate-x-5" : ""
+                  }`}
+                />
+              </button>
+            </div>
           </div>
 
           {/* Confirm Button */}
