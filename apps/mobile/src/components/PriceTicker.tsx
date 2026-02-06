@@ -57,11 +57,11 @@ export function PriceTicker() {
 
   if (loading) {
     return (
-      <div className="flex gap-4 px-4 py-2 bg-gray-900 overflow-hidden">
+      <div className="flex gap-4 px-4 py-2 bg-stone-900 overflow-hidden">
         {[1, 2, 3, 4, 5].map((i) => (
           <div key={i} className="flex items-center gap-2 animate-pulse">
-            <div className="w-12 h-4 bg-gray-700 rounded" />
-            <div className="w-16 h-4 bg-gray-700 rounded" />
+            <div className="w-12 h-4 bg-stone-700" />
+            <div className="w-16 h-4 bg-stone-700" />
           </div>
         ))}
       </div>
@@ -72,20 +72,20 @@ export function PriceTicker() {
   const duplicatedAssets = [...assets, ...assets];
 
   return (
-    <div className="relative overflow-hidden bg-gray-900 py-2">
+    <div className="relative overflow-hidden bg-stone-900 py-2">
       <div className="flex animate-ticker whitespace-nowrap">
         {duplicatedAssets.map((asset, i) => (
           <div
             key={`${asset.symbol}-${i}`}
-            className="flex items-center gap-2 px-4 border-r border-gray-700 last:border-0"
+            className="flex items-center gap-2 px-4 border-r border-stone-700 last:border-0"
           >
-            <span className="text-xs font-bold text-white">{asset.symbol}</span>
-            <span className="text-xs font-medium text-gray-300">
+            <span className="text-xs font-semibold text-white">{asset.symbol}</span>
+            <span className="text-xs font-medium text-stone-300 tabular-nums">
               ${asset.price < 1 ? asset.price.toFixed(4) : asset.price.toLocaleString(undefined, { maximumFractionDigits: 2 })}
             </span>
             <span
-              className={`text-[10px] font-semibold ${
-                asset.change24h >= 0 ? "text-emerald-400" : "text-red-400"
+              className={`text-[10px] font-semibold tabular-nums ${
+                asset.change24h >= 0 ? "text-green-500" : "text-red-500"
               }`}
             >
               {asset.change24h >= 0 ? "+" : ""}

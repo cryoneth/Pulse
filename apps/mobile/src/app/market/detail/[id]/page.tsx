@@ -650,53 +650,61 @@ export default function MarketDetailPage({
   const insufficientHint = amountNum <= 0 && amount.length > 0;
   const belowMinimum = !testMode && amountNum > 0 && amountNum < 5;
 
+  // Error state
   if (!displayQuestion && isContract && questionError)
     return (
-      <div className="p-8 text-center">
-        <p className="text-red-500 font-semibold mb-2">Failed to load market</p>
-        <p className="text-sm text-gray-500 mb-4">RPC connection issue. Please try again.</p>
-        <button
-          onClick={() => window.location.reload()}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold"
-        >
-          Retry
-        </button>
-      </div>
-    );
-  if (!displayQuestion && isContract)
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="min-h-screen bg-[#FAFAF9] flex items-center justify-center p-8">
         <div className="text-center">
-          <div className="w-8 h-8 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-sm text-gray-500">Loading market...</p>
+          <p className="text-red-600 font-medium mb-2">Failed to load market</p>
+          <p className="text-sm text-stone-500 mb-4">RPC connection issue. Please try again.</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-[#0C4A6E] text-white font-medium"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );
+
+  // Loading state
+  if (!displayQuestion && isContract)
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#FAFAF9]">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-stone-200 border-t-[#0C4A6E] rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-sm text-stone-500">Loading market...</p>
+        </div>
+      </div>
+    );
+
+  // Not found state
   if (!mockMarket && !isContract)
-    return <div className="p-8 text-center text-gray-500">Market not found</div>;
+    return <div className="p-8 text-center text-stone-500">Market not found</div>;
 
   return (
-    <div className="min-h-screen bg-page text-main pb-32">
+    <div className="min-h-screen bg-[#FAFAF9] text-stone-900 pb-32">
       {/* Navbar */}
-      <nav className="bg-white border-b border-border px-4 py-3 flex items-center gap-4">
+      <nav className="bg-white border-b border-stone-200 px-4 py-3 flex items-center gap-4">
         <Link
           href="/market/list"
-          className="text-sm font-semibold text-muted hover:text-main"
+          className="text-sm font-medium text-stone-500 hover:text-stone-900 transition-colors"
         >
           &larr; Back
         </Link>
-        <span className="font-semibold text-sm truncate opacity-50 flex-1">
+        <span className="font-medium text-sm truncate text-stone-400 flex-1">
           Market Detail
         </span>
         <WalletButton />
       </nav>
 
       <div className="px-4 py-6">
-        <h1 className="text-2xl font-bold leading-tight text-main mb-2">
+        {/* Market Question - Editorial headline */}
+        <h1 className="text-2xl font-serif font-semibold leading-tight text-stone-900 mb-3">
           {displayQuestion}
         </h1>
 
-        <div className="flex gap-4 text-xs font-medium text-muted mb-6">
+        <div className="flex gap-4 text-xs font-medium text-stone-500 mb-6">
           <span>Ends {displayEnd}</span>
           <span>$125k Volume</span>
         </div>
@@ -707,50 +715,50 @@ export default function MarketDetailPage({
           yesPrice={mockMarket?.yesPrice ?? 50}
         />
 
-        {/* Action Panel */}
-        <div className="clean-card p-4">
-          <h2 className="text-sm font-bold mb-4 uppercase tracking-wide text-muted">
+        {/* Action Panel - Clean card */}
+        <div className="bg-white border border-stone-200 p-6 mt-6">
+          <h2 className="text-xs font-medium mb-5 uppercase tracking-wider text-stone-500">
             Open Position
           </h2>
 
-          {/* Side Toggle */}
-          <div className="flex p-1 bg-gray-100 rounded-lg mb-5">
+          {/* Side Toggle - Equal weight bordered buttons */}
+          <div className="flex border border-stone-200 mb-5">
             <button
               onClick={() => setSide("YES")}
-              className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${
+              className={`flex-1 py-3 text-sm font-medium transition-colors ${
                 side === "YES"
-                  ? "bg-white shadow-sm text-emerald-500"
-                  : "text-muted hover:text-main"
+                  ? "bg-green-600 text-white"
+                  : "bg-white text-stone-600 hover:bg-stone-50"
               }`}
             >
-              YES
+              Yes
             </button>
             <button
               onClick={() => setSide("NO")}
-              className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${
+              className={`flex-1 py-3 text-sm font-medium transition-colors border-l border-stone-200 ${
                 side === "NO"
-                  ? "bg-white shadow-sm text-red-500"
-                  : "text-muted hover:text-main"
+                  ? "bg-red-600 text-white"
+                  : "bg-white text-stone-600 hover:bg-stone-50"
               }`}
             >
-              NO
+              No
             </button>
           </div>
 
           {/* Source chain/token selector */}
-          <div className="mb-4">
-            <label className="text-xs font-bold text-muted mb-1.5 block">
+          <div className="mb-5">
+            <label className="text-xs font-medium text-stone-500 mb-2 block uppercase tracking-wider">
               Pay from
             </label>
 
             {isAutoMode && !showSourcePicker ? (
-              <div className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-between">
-                <span className="text-sm font-semibold text-gray-900">
+              <div className="w-full px-4 py-3 bg-stone-50 border border-stone-200 flex items-center justify-between">
+                <span className="text-sm font-medium text-stone-900">
                   {scanningSource ? (
-                    <span className="text-gray-400">Scanning wallets...</span>
+                    <span className="text-stone-400">Scanning wallets...</span>
                   ) : autoDetected ? (
                     <>
-                      <span className="text-emerald-600">Best route:</span>{" "}
+                      <span className="text-green-600">Best route:</span>{" "}
                       {autoDetected.source.label}
                     </>
                   ) : (
@@ -760,16 +768,16 @@ export default function MarketDetailPage({
                 <button
                   type="button"
                   onClick={() => setShowSourcePicker(true)}
-                  className="text-xs text-blue-500 font-semibold hover:text-blue-700 ml-2"
+                  className="text-xs text-[#0C4A6E] font-medium hover:underline ml-2"
                 >
                   Change
                 </button>
               </div>
             ) : showSourcePicker ? (
-              <div className="border border-blue-400 rounded-lg overflow-hidden bg-white">
+              <div className="border border-[#0C4A6E] overflow-hidden bg-white">
                 {/* Sticky header: Best route pill + search */}
-                <div className="sticky top-0 bg-white z-10 border-b border-gray-100">
-                  <div className="flex items-center gap-2 px-3 pt-2.5 pb-2">
+                <div className="sticky top-0 bg-white z-10 border-b border-stone-100">
+                  <div className="flex items-center gap-2 px-3 pt-3 pb-2">
                     <button
                       type="button"
                       onClick={() => {
@@ -777,7 +785,7 @@ export default function MarketDetailPage({
                         setShowSourcePicker(false);
                         setSourceSearch("");
                       }}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold hover:bg-emerald-100 transition-colors whitespace-nowrap"
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-200 text-green-700 text-xs font-medium hover:bg-green-100 transition-colors whitespace-nowrap"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -790,7 +798,7 @@ export default function MarketDetailPage({
                       onChange={(e) => setSourceSearch(e.target.value)}
                       placeholder="Search..."
                       autoFocus
-                      className="flex-1 min-w-0 px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-semibold text-gray-900 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                      className="flex-1 min-w-0 px-3 py-1.5 bg-stone-50 border border-stone-200 text-sm font-medium text-stone-900 focus:outline-none focus:border-[#0C4A6E]"
                     />
                   </div>
                 </div>
@@ -808,7 +816,7 @@ export default function MarketDetailPage({
                       });
 
                     if (filtered.length === 0) {
-                      return <p className="px-3 py-2 text-sm text-gray-400">No results</p>;
+                      return <p className="px-3 py-2 text-sm text-stone-400">No results</p>;
                     }
 
                     return filtered.map(({ opt, i }) => {
@@ -829,22 +837,22 @@ export default function MarketDetailPage({
                             setShowSourcePicker(false);
                             setSourceSearch("");
                           }}
-                          className={`w-full text-left px-3 py-2 text-sm font-semibold hover:bg-blue-50 transition-colors flex justify-between items-center ${
+                          className={`w-full text-left px-3 py-2.5 text-sm font-medium hover:bg-stone-50 transition-colors flex justify-between items-center border-t border-stone-100 first:border-t-0 ${
                             i === sourceIndex
-                              ? "bg-blue-50 text-blue-700"
-                              : "text-gray-900"
+                              ? "bg-stone-50 text-[#0C4A6E]"
+                              : "text-stone-900"
                           }`}
                         >
                           <span className="flex items-center gap-2">
                             {opt.label}
                             {isRecommended && (
-                              <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full">
+                              <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5">
                                 Best
                               </span>
                             )}
                           </span>
                           {balanceInfo && (
-                            <span className={`text-xs ${hasEnough ? "text-emerald-600" : "text-gray-400"}`}>
+                            <span className={`text-xs tabular-nums ${hasEnough ? "text-green-600" : "text-stone-400"}`}>
                               ${balanceInfo.balance.toFixed(2)}
                             </span>
                           )}
@@ -855,15 +863,15 @@ export default function MarketDetailPage({
                 </div>
               </div>
             ) : (
-              <div className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-between">
-                <span className="text-sm font-semibold text-gray-900">
+              <div className="w-full px-4 py-3 bg-stone-50 border border-stone-200 flex items-center justify-between">
+                <span className="text-sm font-medium text-stone-900">
                   {source.label}
                 </span>
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <button
                     type="button"
                     onClick={() => setShowSourcePicker(true)}
-                    className="text-xs text-gray-400 font-semibold hover:text-gray-600"
+                    className="text-xs text-stone-500 font-medium hover:text-stone-700"
                   >
                     Change
                   </button>
@@ -873,7 +881,7 @@ export default function MarketDetailPage({
                       setIsAutoMode(true);
                       setShowSourcePicker(false);
                     }}
-                    className="text-xs text-emerald-500 font-semibold hover:text-emerald-700"
+                    className="text-xs text-green-600 font-medium hover:text-green-700"
                   >
                     Best route
                   </button>
@@ -883,44 +891,44 @@ export default function MarketDetailPage({
           </div>
 
           {/* Amount Input */}
-          <div className="mb-4">
-            <div className="flex justify-between items-baseline mb-1.5">
-              <label className="text-xs font-bold text-muted">
+          <div className="mb-5">
+            <div className="flex justify-between items-baseline mb-2">
+              <label className="text-xs font-medium text-stone-500 uppercase tracking-wider">
                 Amount ({source.tokenName})
               </label>
               {formattedBalance !== null && (
                 <button
                   type="button"
                   onClick={() => setAmount(formattedBalance)}
-                  className="text-xs text-blue-500 font-semibold hover:text-blue-700 transition-colors"
+                  className="text-xs text-[#0C4A6E] font-medium hover:underline transition-colors"
                 >
                   Bal: {formattedBalance} {source.tokenName}
                 </button>
               )}
             </div>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted font-bold">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400 font-medium">
                 {["USDC", "USDT", "DAI"].includes(source.tokenName) ? "$" : ""}
               </span>
               <input
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className={`clean-input ${
-                  ["USDC", "USDT", "DAI"].includes(source.tokenName) ? "pl-7" : "pl-3"
-                } font-bold text-lg`}
+                className={`w-full px-4 py-3 border-2 border-stone-300 bg-white text-stone-900 text-lg font-medium tabular-nums focus:border-[#0C4A6E] focus:outline-none transition-colors ${
+                  ["USDC", "USDT", "DAI"].includes(source.tokenName) ? "pl-8" : "pl-4"
+                }`}
                 placeholder="0.00"
               />
             </div>
             {insufficientHint && (
-              <span className="text-xs text-red-500 mt-1 block">
+              <span className="text-xs text-red-600 mt-1 block">
                 Enter a valid amount
               </span>
             )}
             {/* Insufficient balance warning with suggestions */}
             {formattedBalance !== null && amountNum > parseFloat(formattedBalance) && amountNum > 0 && (
-              <div className="mt-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5">
-                <p className="text-xs font-semibold text-red-700 mb-1">
+              <div className="mt-2 bg-red-50 border border-red-200 px-3 py-2.5">
+                <p className="text-xs font-medium text-red-700 mb-1">
                   Insufficient balance on {source.chainName}
                 </p>
                 {autoDetected?.allWithBalance && (() => {
@@ -933,14 +941,14 @@ export default function MarketDetailPage({
                           setSourceIndex(better.index);
                           setIsAutoMode(false);
                         }}
-                        className="text-xs text-blue-600 font-semibold hover:underline"
+                        className="text-xs text-[#0C4A6E] font-medium hover:underline"
                       >
                         Use {better.source.tokenName} on {better.source.chainName} (${better.balance.toFixed(2)} available)
                       </button>
                     );
                   } else if (highest && highest.balance > 0) {
                     return (
-                      <p className="text-xs text-gray-600">
+                      <p className="text-xs text-stone-600">
                         Max available: ${highest.balance.toFixed(2)} {highest.source.tokenName} on {highest.source.chainName}
                       </p>
                     );
@@ -950,29 +958,29 @@ export default function MarketDetailPage({
               </div>
             )}
             {belowMinimum && (
-              <div className="mt-2 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
-                <span className="text-amber-500 text-sm leading-none mt-0.5">&#9888;</span>
-                <p className="text-xs font-semibold text-amber-700">
+              <div className="mt-2 flex items-start gap-2 bg-amber-50 border border-amber-200 px-3 py-2.5">
+                <span className="text-amber-600 text-sm leading-none mt-0.5">!</span>
+                <p className="text-xs font-medium text-amber-700">
                   Minimum position is $5.00. Cross-chain fees make smaller amounts uneconomical.
                 </p>
               </div>
             )}
 
             {/* Test Mode Toggle */}
-            <div className="mt-3 flex items-center justify-between">
+            <div className="mt-4 flex items-center justify-between py-3 border-t border-stone-100">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-gray-500">Test Mode</span>
-                <span className="text-[10px] text-gray-400">(no $5 min)</span>
+                <span className="text-xs font-medium text-stone-500 uppercase tracking-wider">Test Mode</span>
+                <span className="text-[10px] text-stone-400 font-serif">(no $5 min)</span>
               </div>
               <button
                 onClick={() => setTestMode(!testMode)}
-                className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${
-                  testMode ? "bg-violet-500" : "bg-gray-300"
+                className={`relative w-10 h-5 transition-colors duration-200 border border-stone-300 ${
+                  testMode ? "bg-[#0C4A6E]" : "bg-stone-100"
                 }`}
               >
                 <span
-                  className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${
-                    testMode ? "translate-x-5" : ""
+                  className={`absolute top-0.5 left-0.5 w-[14px] h-[14px] transition-transform duration-200 ${
+                    testMode ? "translate-x-5 bg-white" : "bg-stone-400"
                   }`}
                 />
               </button>
@@ -990,22 +998,22 @@ export default function MarketDetailPage({
               flowState === "quoting" ||
               scanningSource
             }
-            className={`w-full py-3.5 rounded-lg text-white font-bold text-base transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+            className={`w-full py-4 text-white font-medium text-base transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
               side === "YES"
-                ? "bg-emerald-500 hover:bg-emerald-600"
-                : "bg-red-500 hover:bg-red-600"
+                ? "bg-green-600 hover:bg-green-700"
+                : "bg-red-600 hover:bg-red-700"
             }`}
           >
             {flowState === "quoting"
-              ? "Getting best route..."
+              ? "Establishing route..."
               : scanningSource
               ? "Scanning wallets..."
               : !address
-              ? "Connect wallet first"
+              ? "Connect wallet to trade"
               : "Confirm Position"}
           </button>
 
-          <p className="text-xs text-gray-400 text-center mt-3">
+          <p className="text-xs text-stone-400 text-center mt-5 font-serif italic">
             Your funds are never stranded. If anything fails, tokens stay in
             your wallet.
           </p>
@@ -1013,63 +1021,63 @@ export default function MarketDetailPage({
 
         {/* Sell Panel — only for contract markets when user has a position */}
         {isContract && address && hasPosition && (
-          <div className="clean-card p-4 mt-4">
-            <h2 className="text-sm font-bold mb-4 uppercase tracking-wide text-muted">
-              Sell Position
+          <div className="bg-white border border-stone-200 p-6 mt-6">
+            <h2 className="text-xs font-medium mb-5 uppercase tracking-wider text-stone-500">
+              Liquidate Position
             </h2>
 
             {/* Position summary */}
-            <div className="flex gap-3 mb-4">
+            <div className="flex gap-3 mb-6">
               {hasYes && (
-                <div className="flex-1 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
-                  <p className="text-xs font-bold text-emerald-600">YES shares</p>
-                  <p className="text-lg font-bold text-emerald-700">{parseFloat(yesBalanceFormatted).toFixed(2)}</p>
+                <div className="flex-1 bg-white border border-green-200 px-4 py-3">
+                  <p className="text-[10px] font-medium text-green-700 uppercase tracking-widest">Yes shares</p>
+                  <p className="text-xl font-semibold text-stone-900 tabular-nums mt-1">{parseFloat(yesBalanceFormatted).toFixed(2)}</p>
                 </div>
               )}
               {hasNo && (
-                <div className="flex-1 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                  <p className="text-xs font-bold text-red-600">NO shares</p>
-                  <p className="text-lg font-bold text-red-700">{parseFloat(noBalanceFormatted).toFixed(2)}</p>
+                <div className="flex-1 bg-white border border-red-200 px-4 py-3">
+                  <p className="text-[10px] font-medium text-red-700 uppercase tracking-widest">No shares</p>
+                  <p className="text-xl font-semibold text-stone-900 tabular-nums mt-1">{parseFloat(noBalanceFormatted).toFixed(2)}</p>
                 </div>
               )}
             </div>
 
             {/* Sell side toggle (only if user has both) */}
             {hasYes && hasNo && (
-              <div className="flex p-1 bg-gray-100 rounded-lg mb-4">
+              <div className="flex border border-stone-200 mb-5">
                 <button
                   onClick={() => setSellSide("YES")}
-                  className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${
+                  className={`flex-1 py-3 text-xs font-medium uppercase tracking-wider transition-colors ${
                     sellSide === "YES"
-                      ? "bg-white shadow-sm text-emerald-500"
-                      : "text-muted hover:text-main"
+                      ? "bg-[#0C4A6E] text-white"
+                      : "bg-white text-stone-600 hover:bg-stone-50"
                   }`}
                 >
-                  Sell YES
+                  Sell Yes
                 </button>
                 <button
                   onClick={() => setSellSide("NO")}
-                  className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${
+                  className={`flex-1 py-3 text-xs font-medium uppercase tracking-wider transition-colors border-l border-stone-200 ${
                     sellSide === "NO"
-                      ? "bg-white shadow-sm text-red-500"
-                      : "text-muted hover:text-main"
+                      ? "bg-[#0C4A6E] text-white"
+                      : "bg-white text-stone-600 hover:bg-stone-50"
                   }`}
                 >
-                  Sell NO
+                  Sell No
                 </button>
               </div>
             )}
 
             {/* Sell amount input */}
-            <div className="mb-4">
-              <div className="flex justify-between items-baseline mb-1.5">
-                <label className="text-xs font-bold text-muted">
-                  Amount to sell
+            <div className="mb-6">
+              <div className="flex justify-between items-baseline mb-2">
+                <label className="text-xs font-medium text-stone-500 uppercase tracking-wider">
+                  Shares to sell
                 </label>
                 <button
                   type="button"
                   onClick={() => setSellAmount(sellSide === "YES" ? yesBalanceFormatted : noBalanceFormatted)}
-                  className="text-xs text-blue-500 font-semibold hover:text-blue-700 transition-colors"
+                  className="text-xs text-[#0C4A6E] font-medium hover:underline transition-colors font-serif"
                 >
                   Max: {parseFloat(sellSide === "YES" ? yesBalanceFormatted : noBalanceFormatted).toFixed(2)}
                 </button>
@@ -1081,7 +1089,7 @@ export default function MarketDetailPage({
                   setSellAmount(e.target.value);
                   if (sellState === "success" || sellState === "error") setSellState("idle");
                 }}
-                className="clean-input font-bold text-lg"
+                className="w-full px-4 py-3 border border-stone-300 bg-white text-stone-900 text-lg font-medium tabular-nums focus:border-[#0C4A6E] focus:outline-none transition-colors"
                 placeholder="0.00"
               />
             </div>
@@ -1095,22 +1103,22 @@ export default function MarketDetailPage({
                 sellState === "approving" ||
                 sellState === "selling"
               }
-              className="w-full py-3 rounded-lg text-white font-bold text-base transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-gray-800 hover:bg-gray-900"
+              className="w-full py-4 text-white font-medium text-base transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-stone-900 hover:bg-stone-800"
             >
               {sellState === "approving"
                 ? "Approving..."
                 : sellState === "selling"
-                ? "Selling..."
-                : `Sell ${sellSide} for USDC`}
+                ? "Executing..."
+                : `Sell ${sellSide} shares`}
             </button>
 
             {sellState === "success" && (
-              <p className="text-xs text-emerald-600 font-semibold text-center mt-3">
-                Sold successfully! USDC returned to your wallet.
+              <p className="text-xs text-green-600 font-medium text-center mt-5 bg-green-50 py-2 border border-green-100">
+                Position closed. USDC returned to wallet.
               </p>
             )}
             {sellState === "error" && sellError && (
-              <p className="text-xs text-red-500 font-semibold text-center mt-3">
+              <p className="text-xs text-red-600 font-medium text-center mt-5 bg-red-50 py-2 border border-red-100">
                 {sellError}
               </p>
             )}

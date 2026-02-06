@@ -33,3 +33,4 @@ yarn-error.log*
 .pnpm-debug.log*
 # Session logs
 2026-*.txt
+.env*.local

@@ -117,7 +117,7 @@ export function PositionCard({
   const isOverMax = sellAmountNum > sharesNum;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+    <div className="bg-white border border-stone-200 overflow-hidden">
       {/* Header - Always visible */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
@@ -125,36 +125,36 @@ export function PositionCard({
       >
         <div className="flex items-start justify-between gap-3 mb-2">
           <span
-            className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+            className={`text-xs font-medium px-2 py-0.5 uppercase tracking-wider ${
               side === "YES"
-                ? "text-emerald-700 bg-emerald-100"
-                : "text-red-700 bg-red-100"
+                ? "text-green-700 bg-green-50 border border-green-200"
+                : "text-red-700 bg-red-50 border border-red-200"
             }`}
           >
             {side}
           </span>
           <div className="text-right">
-            <p className="text-sm font-bold text-gray-900">
+            <p className="text-sm font-semibold text-stone-900 tabular-nums">
               {sharesNum.toFixed(2)} shares
             </p>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-stone-500 tabular-nums">
               ~${estimatedValue.toFixed(2)}
             </p>
           </div>
         </div>
-        <p className="text-sm font-semibold text-gray-900 leading-snug line-clamp-2">
+        <p className="text-sm font-semibold text-stone-900 leading-snug line-clamp-2">
           {question}
         </p>
         <div className="flex items-center justify-between mt-2">
           <Link
             href={`/market/detail/${marketId}`}
             onClick={(e) => e.stopPropagation()}
-            className="text-xs text-blue-600 font-semibold hover:underline"
+            className="text-xs text-[#0C4A6E] font-semibold hover:underline"
           >
             View Market
           </Link>
           <svg
-            className={`w-4 h-4 text-gray-400 transition-transform ${
+            className={`w-4 h-4 text-stone-400 transition-transform ${
               isExpanded ? "rotate-180" : ""
             }`}
             fill="none"
@@ -168,27 +168,27 @@ export function PositionCard({
 
       {/* Expandable sell section */}
       {isExpanded && (
-        <div className="px-4 pb-4 pt-2 border-t border-gray-100 bg-gray-50">
+        <div className="px-4 pb-4 pt-2 border-t border-stone-100 bg-stone-50">
           {sellState === "success" ? (
             <div className="text-center py-3">
-              <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="w-8 h-8 bg-green-100 flex items-center justify-center mx-auto mb-2">
+                <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <p className="text-sm font-semibold text-emerald-700">Sold successfully!</p>
+              <p className="text-sm font-semibold text-green-700">Sold successfully!</p>
             </div>
           ) : (
             <>
               <div className="mb-3">
                 <div className="flex justify-between items-baseline mb-1.5">
-                  <label className="text-xs font-bold text-gray-500">
+                  <label className="text-xs font-medium text-stone-500 uppercase tracking-wider">
                     Shares to sell
                   </label>
                   <button
                     type="button"
                     onClick={() => setSellAmount(shares)}
-                    className="text-xs text-blue-500 font-semibold hover:text-blue-700"
+                    className="text-xs text-[#0C4A6E] font-semibold hover:text-[#075985]"
                   >
                     Max: {sharesNum.toFixed(2)}
                   </button>
@@ -200,16 +200,16 @@ export function PositionCard({
                     setSellAmount(e.target.value);
                     if (sellState === "error") setSellState("idle");
                   }}
-                  className="w-full px-3 py-2.5 bg-white border border-gray-200 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2.5 bg-white border-2 border-stone-200 text-sm font-semibold focus:outline-none focus:border-[#0C4A6E] transition-colors tabular-nums"
                   placeholder="0.00"
                 />
                 {isOverMax && (
-                  <p className="text-xs text-red-500 mt-1">
+                  <p className="text-xs text-red-600 mt-1">
                     Exceeds available shares
                   </p>
                 )}
                 {sellAmountNum > 0 && !isOverMax && (
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-stone-500 mt-1 tabular-nums">
                     Est. return: ~${(sellAmountNum * 0.5).toFixed(2)} USDC
                   </p>
                 )}
@@ -224,7 +224,7 @@ export function PositionCard({
                   sellState === "approving" ||
                   sellState === "selling"
                 }
-                className="w-full py-2.5 rounded-lg text-white font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-gray-800 hover:bg-gray-900"
+                className="w-full py-2.5 text-white font-medium text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-stone-900 hover:bg-stone-800"
               >
                 {sellState === "approving"
                   ? "Approving..."
@@ -234,7 +234,7 @@ export function PositionCard({
               </button>
 
               {sellState === "error" && sellError && (
-                <p className="text-xs text-red-500 font-medium text-center mt-2">
+                <p className="text-xs text-red-600 font-medium text-center mt-2">
                   {sellError}
                 </p>
               )}

@@ -36,7 +36,7 @@ export function BottomNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200/80 pb-safe z-50">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 pb-safe z-50">
       <div className="flex justify-around items-center h-16">
         {navItems.map((item) => {
           const isActive =
@@ -49,12 +49,12 @@ export function BottomNav() {
               href={item.href}
               className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors duration-200 ${
                 isActive
-                  ? "text-blue-600"
-                  : "text-gray-400 hover:text-gray-600"
+                  ? "text-[#0C4A6E]"
+                  : "text-stone-400 hover:text-stone-600"
               }`}
             >
-              <Icon className={`w-6 h-6 transition-transform duration-200 ${isActive ? "scale-110" : ""}`} />
-              <span className="text-[10px] font-semibold uppercase tracking-wide">
+              <Icon className="w-6 h-6" />
+              <span className="text-[10px] font-medium uppercase tracking-wide">
                 {item.label}
               </span>
             </Link>

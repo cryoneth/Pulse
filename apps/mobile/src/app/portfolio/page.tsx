@@ -219,19 +219,19 @@ export default function PortfolioPage() {
 
   if (!isConnected) {
     return (
-      <div className="min-h-screen bg-gray-100">
-        <div className="bg-white border-b border-gray-200 px-4 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold text-gray-900">Portfolio</h1>
+      <div className="min-h-screen bg-[#FAFAF9]">
+        <div className="bg-white border-b border-stone-200 px-4 py-4 flex justify-between items-center">
+          <h1 className="text-xl font-serif font-semibold text-stone-900">Portfolio</h1>
           <WalletButton />
         </div>
         <div className="flex flex-col items-center justify-center px-4 py-20">
-          <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-4">
-            <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="w-16 h-16 bg-stone-100 flex items-center justify-center mb-4">
+            <svg className="w-8 h-8 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
-          <h2 className="text-lg font-bold text-gray-900 mb-2">Connect Your Wallet</h2>
-          <p className="text-sm text-gray-500 text-center mb-6">
+          <h2 className="text-lg font-serif font-semibold text-stone-900 mb-2">Connect Your Wallet</h2>
+          <p className="text-sm text-stone-500 text-center mb-6">
             Connect your wallet to view your positions and transaction history
           </p>
           <WalletButton />
@@ -241,20 +241,20 @@ export default function PortfolioPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 pb-24">
+    <div className="min-h-screen bg-[#FAFAF9] pb-24">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-4 py-4 flex justify-between items-center">
-        <h1 className="text-xl font-bold text-gray-900">Portfolio</h1>
+      <div className="bg-white border-b border-stone-200 px-4 py-4 flex justify-between items-center">
+        <h1 className="text-xl font-serif font-semibold text-stone-900">Portfolio</h1>
         <WalletButton />
       </div>
 
       <div className="px-4 py-4">
         {/* Balance Summary Card */}
-        <div className="bg-gradient-to-br from-blue-600 to-violet-600 rounded-2xl p-5 mb-5 text-white shadow-lg">
+        <div className="bg-[#0C4A6E] p-5 mb-5 text-white">
           <div className="flex justify-between items-start mb-4">
             <div>
-              <p className="text-xs font-medium text-blue-100 uppercase tracking-wider">Total Balance</p>
-              <p className="text-3xl font-bold mt-1">
+              <p className="text-xs font-medium text-sky-200 uppercase tracking-wider">Total Balance</p>
+              <p className="text-3xl font-semibold mt-1 tabular-nums">
                 ${(parseFloat(usdcFormatted) + totalPositionValue).toFixed(2)}
               </p>
             </div>
@@ -262,46 +262,46 @@ export default function PortfolioPage() {
               href={getAddressExplorerLink(BASE_CHAIN_ID, address!)}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-full font-semibold transition-colors"
+              className="text-xs bg-white/20 hover:bg-white/30 px-3 py-1.5 font-medium transition-colors"
             >
               View on BaseScan ↗
             </a>
           </div>
 
           <div className="grid grid-cols-3 gap-3">
-            <div className="bg-white/10 rounded-xl p-3">
-              <p className="text-[10px] font-medium text-blue-100 uppercase">USDC</p>
-              <p className="text-lg font-bold">${usdcFormatted}</p>
+            <div className="bg-white/10 p-3">
+              <p className="text-[10px] font-medium text-sky-200 uppercase tracking-wider">USDC</p>
+              <p className="text-lg font-semibold tabular-nums">${usdcFormatted}</p>
             </div>
-            <div className="bg-white/10 rounded-xl p-3">
-              <p className="text-[10px] font-medium text-blue-100 uppercase">ETH</p>
-              <p className="text-lg font-bold">{ethFormatted}</p>
+            <div className="bg-white/10 p-3">
+              <p className="text-[10px] font-medium text-sky-200 uppercase tracking-wider">ETH</p>
+              <p className="text-lg font-semibold tabular-nums">{ethFormatted}</p>
             </div>
-            <div className="bg-white/10 rounded-xl p-3">
-              <p className="text-[10px] font-medium text-blue-100 uppercase">Positions</p>
-              <p className="text-lg font-bold">${totalPositionValue.toFixed(2)}</p>
+            <div className="bg-white/10 p-3">
+              <p className="text-[10px] font-medium text-sky-200 uppercase tracking-wider">Positions</p>
+              <p className="text-lg font-semibold tabular-nums">${totalPositionValue.toFixed(2)}</p>
             </div>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex bg-gray-200 rounded-lg p-1 mb-4">
+        <div className="flex border border-stone-200 mb-4">
           <button
             onClick={() => setActiveTab("positions")}
-            className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${
+            className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
               activeTab === "positions"
-                ? "bg-white text-gray-900 shadow-sm"
-                : "text-gray-500 hover:text-gray-700"
+                ? "bg-[#0C4A6E] text-white"
+                : "bg-white text-stone-500 hover:text-stone-700"
             }`}
           >
             Positions ({positions.length})
           </button>
           <button
             onClick={() => setActiveTab("history")}
-            className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${
+            className={`flex-1 py-2.5 text-sm font-medium border-l border-stone-200 transition-colors ${
               activeTab === "history"
-                ? "bg-white text-gray-900 shadow-sm"
-                : "text-gray-500 hover:text-gray-700"
+                ? "bg-[#0C4A6E] text-white"
+                : "bg-white text-stone-500 hover:text-stone-700"
             }`}
           >
             History
@@ -313,23 +313,23 @@ export default function PortfolioPage() {
           <div>
             {isLoading || balancesLoading ? (
               <div className="flex flex-col items-center py-12">
-                <div className="w-8 h-8 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin mb-3" />
-                <p className="text-sm text-gray-500">Loading positions...</p>
+                <div className="w-8 h-8 border-4 border-stone-200 border-t-[#0C4A6E] animate-spin mb-3" />
+                <p className="text-sm text-stone-500">Loading positions...</p>
               </div>
             ) : positions.length === 0 ? (
-              <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="bg-white border border-stone-200 p-8 text-center">
+                <div className="w-12 h-12 bg-stone-100 flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-6 h-6 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">No Positions Yet</h3>
-                <p className="text-sm text-gray-500 mb-4">
+                <h3 className="text-lg font-serif font-semibold text-stone-900 mb-2">No Positions Yet</h3>
+                <p className="text-sm text-stone-500 mb-4">
                   Start trading to build your portfolio
                 </p>
                 <Link
                   href="/market/list"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0C4A6E] text-white font-medium hover:bg-[#075985] transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -342,20 +342,20 @@ export default function PortfolioPage() {
                 {positions.map((pos, idx) => (
                   <div
                     key={`${pos.marketId}-${pos.side}-${idx}`}
-                    className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm"
+                    className="bg-white border border-stone-200 p-4"
                   >
                     {/* Header */}
                     <div className="flex justify-between items-start mb-3">
                       <span
-                        className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                        className={`text-xs font-medium px-2 py-0.5 uppercase tracking-wider ${
                           pos.side === "YES"
-                            ? "text-emerald-700 bg-emerald-100"
-                            : "text-red-700 bg-red-100"
+                            ? "text-green-700 bg-green-50 border border-green-200"
+                            : "text-red-700 bg-red-50 border border-red-200"
                         }`}
                       >
                         {pos.side}
                       </span>
-                      <span className="text-lg font-bold text-gray-900">
+                      <span className="text-lg font-semibold text-stone-900 tabular-nums">
                         {parseFloat(pos.shares).toFixed(2)} shares
                       </span>
                     </div>
@@ -363,15 +363,15 @@ export default function PortfolioPage() {
                     {/* Question */}
                     <Link
                       href={`/market/detail/${pos.marketId}`}
-                      className="text-sm font-semibold text-gray-900 leading-snug block mb-3 hover:text-blue-600 transition-colors"
+                      className="text-sm font-semibold text-stone-900 leading-snug block mb-3 hover:text-[#0C4A6E] transition-colors"
                     >
                       {pos.question}
                     </Link>
 
                     {/* Estimated Value */}
-                    <div className="flex justify-between items-center text-xs text-gray-500 mb-4">
+                    <div className="flex justify-between items-center text-xs text-stone-500 mb-4">
                       <span>Est. Value</span>
-                      <span className="font-semibold text-gray-700">
+                      <span className="font-semibold text-stone-700 tabular-nums">
                         ~${(parseFloat(pos.shares) * 0.5).toFixed(2)}
                       </span>
                     </div>
@@ -380,13 +380,13 @@ export default function PortfolioPage() {
                     <div className="flex gap-2">
                       <Link
                         href={`/market/detail/${pos.marketId}`}
-                        className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold rounded-lg text-center transition-colors"
+                        className="flex-1 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium text-center transition-colors"
                       >
                         Buy More
                       </Link>
                       <Link
                         href={`/market/detail/${pos.marketId}#sell`}
-                        className="flex-1 py-2.5 bg-gray-800 hover:bg-gray-900 text-white text-sm font-bold rounded-lg text-center transition-colors"
+                        className="flex-1 py-2.5 bg-stone-900 hover:bg-stone-800 text-white text-sm font-medium text-center transition-colors"
                       >
                         Sell
                       </Link>
@@ -402,19 +402,19 @@ export default function PortfolioPage() {
         {activeTab === "history" && (
           <div>
             {transactions.length === 0 ? (
-              <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="bg-white border border-stone-200 p-8 text-center">
+                <div className="w-12 h-12 bg-stone-100 flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-6 h-6 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">No Transactions Yet</h3>
-                <p className="text-sm text-gray-500 mb-4">
+                <h3 className="text-lg font-serif font-semibold text-stone-900 mb-2">No Transactions Yet</h3>
+                <p className="text-sm text-stone-500 mb-4">
                   Your transaction history will appear here after you make a trade
                 </p>
                 <Link
                   href="/market/list"
-                  className="inline-flex items-center gap-2 text-sm text-blue-600 font-semibold hover:text-blue-700"
+                  className="inline-flex items-center gap-2 text-sm text-[#0C4A6E] font-semibold hover:text-[#075985]"
                 >
                   Start trading
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -430,20 +430,20 @@ export default function PortfolioPage() {
                     href={getExplorerLink(tx.chainId, tx.hash)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="bg-white rounded-xl border border-gray-200 p-4 flex items-center justify-between hover:border-blue-300 transition-colors"
+                    className="bg-white border border-stone-200 p-4 flex items-center justify-between hover:border-[#0C4A6E] transition-colors"
                   >
                     <div className="flex items-center gap-3">
                       <div
-                        className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        className={`w-10 h-10 flex items-center justify-center ${
                           tx.type === "buy"
-                            ? "bg-emerald-100"
+                            ? "bg-green-50"
                             : tx.type === "sell"
-                            ? "bg-red-100"
-                            : "bg-gray-100"
+                            ? "bg-red-50"
+                            : "bg-stone-100"
                         }`}
                       >
                         {tx.type === "buy" ? (
-                          <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                           </svg>
                         ) : tx.type === "sell" ? (
@@ -451,27 +451,27 @@ export default function PortfolioPage() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
                           </svg>
                         ) : (
-                          <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <svg className="w-5 h-5 text-stone-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
                         )}
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-gray-900 capitalize">
+                        <p className="text-sm font-semibold text-stone-900 capitalize">
                           {tx.type} {tx.side}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-stone-500 tabular-nums">
                           {tx.hash.slice(0, 8)}...{tx.hash.slice(-6)}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       {tx.amount && (
-                        <span className="text-sm font-semibold text-gray-700">
+                        <span className="text-sm font-semibold text-stone-700 tabular-nums">
                           ${tx.amount}
                         </span>
                       )}
-                      <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-4 h-4 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                       </svg>
                     </div>
@@ -482,8 +482,8 @@ export default function PortfolioPage() {
                 {(() => {
                   const chainIds = [...new Set(transactions.map(tx => tx.chainId))];
                   return chainIds.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-gray-100">
-                      <p className="text-xs text-gray-500 text-center mb-2">View all transactions on:</p>
+                    <div className="mt-3 pt-3 border-t border-stone-100">
+                      <p className="text-xs text-stone-500 text-center mb-2">View all transactions on:</p>
                       <div className="flex flex-wrap justify-center gap-2">
                         {chainIds.map(chainId => {
                           const explorer = EXPLORERS[chainId] || EXPLORERS[8453];
@@ -493,7 +493,7 @@ export default function PortfolioPage() {
                               href={`${explorer.url}/address/${address}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full text-xs font-semibold text-gray-700 transition-colors"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-xs font-semibold text-stone-700 transition-colors"
                             >
                               {explorer.name}
                               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -515,7 +515,7 @@ export default function PortfolioPage() {
         <div className="mt-6 grid grid-cols-2 gap-3">
           <Link
             href="/market/list"
-            className="flex items-center justify-center gap-2 py-3.5 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors"
+            className="flex items-center justify-center gap-2 py-3.5 bg-white border border-stone-200 text-sm font-medium text-stone-700 hover:bg-stone-50 transition-colors"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -526,7 +526,7 @@ export default function PortfolioPage() {
             href={getAddressExplorerLink(BASE_CHAIN_ID, address!)}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 py-3.5 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors"
+            className="flex items-center justify-center gap-2 py-3.5 bg-white border border-stone-200 text-sm font-medium text-stone-700 hover:bg-stone-50 transition-colors"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />

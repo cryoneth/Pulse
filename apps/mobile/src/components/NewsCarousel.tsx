@@ -76,12 +76,13 @@ const newsData: NewsItem[] = [
   }
 ];
 
-const categoryColors: Record<string, string> = {
-  Crypto: "bg-violet-500",
-  Markets: "bg-blue-500",
-  Sports: "bg-emerald-500",
-  Entertainment: "bg-pink-500",
-  Politics: "bg-orange-500",
+// Newspaper style: bordered badges with subtle colors
+const categoryColors: Record<string, { border: string; text: string; bg: string }> = {
+  Crypto: { border: "border-violet-300", text: "text-violet-700", bg: "bg-white" },
+  Markets: { border: "border-sky-300", text: "text-sky-700", bg: "bg-white" },
+  Sports: { border: "border-orange-300", text: "text-orange-700", bg: "bg-white" },
+  Entertainment: { border: "border-pink-300", text: "text-pink-700", bg: "bg-white" },
+  Politics: { border: "border-sky-300", text: "text-sky-700", bg: "bg-white" },
 };
 
 export function NewsCarousel() {
@@ -276,6 +277,7 @@ export function NewsCarousel() {
             const style = getCardStyle(index);
             const isFlipped = flippedCards.has(index);
             const isCurrent = index === currentIndex;
+            const cat = categoryColors[news.category] || { border: "border-stone-300", text: "text-stone-700", bg: "bg-white" };
 
             return (
               <div
@@ -300,36 +302,35 @@ export function NewsCarousel() {
                 >
                   {/* Front Face */}
                   <div
-                    className="absolute inset-0 rounded-2xl overflow-hidden bg-white border border-gray-200/50"
+                    className="absolute inset-0 overflow-hidden bg-white border border-stone-200"
                     style={{
                       backfaceVisibility: "hidden",
-                      boxShadow: "0 25px 50px rgba(0,0,0,0.15), 0 10px 20px rgba(0,0,0,0.1)",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
                     }}
                   >
                     <div className="p-5 sm:p-6 flex flex-col h-full">
-                      <span className={`self-start px-3 py-1 rounded-full text-xs font-semibold text-white uppercase tracking-wide ${categoryColors[news.category] || "bg-gray-500"}`}>
+                      <span className={`self-start px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider border ${cat.border} ${cat.text} ${cat.bg}`}>
                         {news.category}
                       </span>
                       <img
                         src={news.image}
                         alt={news.title}
-                        className="w-full h-40 sm:h-44 md:h-48 object-cover rounded-xl mt-4 shadow-lg"
+                        className="w-full h-40 sm:h-44 md:h-48 object-cover mt-4"
                       />
                       <h3
-                        className="text-xl sm:text-2xl font-bold text-gray-900 mt-4 leading-tight line-clamp-2"
-                        style={{ fontFamily: "var(--font-playfair), serif" }}
+                        className="text-xl sm:text-2xl font-serif font-semibold text-stone-900 mt-4 leading-tight line-clamp-2"
                       >
                         {news.title}
                       </h3>
-                      <div className="flex items-center gap-2 mt-3 text-sm text-gray-500">
+                      <div className="flex items-center gap-2 mt-3 text-sm text-stone-500">
                         <span className="font-medium">{news.author}</span>
                         <span>•</span>
                         <span>{news.date}</span>
                       </div>
-                      <p className="text-sm text-gray-600 mt-3 line-clamp-2 flex-1 leading-relaxed">
+                      <p className="text-sm text-stone-600 mt-3 line-clamp-2 flex-1 leading-relaxed">
                         {news.excerpt}
                       </p>
-                      <span className="text-xs text-blue-500 font-semibold mt-3 animate-pulse">
+                      <span className="text-xs text-[#0C4A6E] font-semibold mt-3">
                         Click to read more →
                       </span>
                     </div>
@@ -337,32 +338,49 @@ export function NewsCarousel() {
 
                   {/* Back Face */}
                   <div
-                    className="absolute inset-0 rounded-2xl overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
+                    className="absolute inset-0 overflow-hidden bg-white border border-stone-200"
                     style={{
                       backfaceVisibility: "hidden",
                       transform: "rotateY(180deg)",
-                      boxShadow: "0 25px 50px rgba(0,0,0,0.3), 0 10px 20px rgba(0,0,0,0.2)",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
                     }}
                   >
-                    <div className="p-5 sm:p-6 flex flex-col h-full">
+                    <div className="p-5 sm:p-6 flex flex-col h-full bg-[#FAFAF9]/50">
+                      <div className="flex items-center gap-2 mb-4">
+                        <span className={`px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider border ${cat.border} ${cat.text} bg-white`}>
+                          Full Story
+                        </span>
+                        <span className="text-[10px] font-medium text-stone-400 uppercase tracking-widest">
+                          Pulse Editorial
+                        </span>
+                      </div>
+                      
                       <h3
-                        className="text-xl sm:text-2xl font-bold text-blue-400 leading-tight mb-4"
-                        style={{ fontFamily: "var(--font-playfair), serif" }}
+                        className="text-xl sm:text-2xl font-serif font-semibold text-stone-900 leading-tight mb-4 border-b border-stone-200 pb-4"
                       >
                         {news.title}
                       </h3>
+                      
                       <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                        <p className="text-sm sm:text-base text-gray-300 leading-relaxed">
-                          {news.fullText}
+                        <p className="text-sm sm:text-base text-stone-700 leading-relaxed font-serif italic">
+                          "{news.fullText}"
                         </p>
                       </div>
-                      <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-700">
-                        <span className="text-xs text-gray-500">
-                          {news.author} • {news.date}
-                        </span>
-                        <span className="text-xs text-blue-400 font-semibold">
-                          ← Tap to flip back
-                        </span>
+                      
+                      <div className="flex items-center justify-between mt-4 pt-4 border-t border-stone-200">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-medium text-stone-400 uppercase tracking-wider">Author</span>
+                          <span className="text-xs font-semibold text-stone-900">{news.author}</span>
+                        </div>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleFlip(index);
+                          }}
+                          className="text-xs text-[#0C4A6E] font-semibold hover:underline"
+                        >
+                          ← Close
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -374,7 +392,7 @@ export function NewsCarousel() {
       </div>
 
       {/* Hint text */}
-      <p className="text-center text-xs text-gray-400 mt-3">
+      <p className="text-center text-xs text-stone-400 mt-3">
         Swipe, drag, or use arrow keys to navigate
       </p>
     </div>

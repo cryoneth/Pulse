@@ -188,11 +188,11 @@ export function FloatingPositionsButton() {
       <button
         onClick={() => setIsDrawerOpen(true)}
         aria-label={`View open positions (${positionCount})`}
-        className="fixed bottom-24 right-4 z-[90] w-14 h-14 md:w-15 md:h-15 md:bottom-8 md:right-6 bg-gradient-to-br from-blue-600 to-violet-600 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200 flex items-center justify-center group animate-fade-in-scale"
+        className="fixed bottom-24 right-4 z-[90] w-14 h-14 md:w-15 md:h-15 md:bottom-8 md:right-6 bg-[#0C4A6E] hover:bg-[#075985] flex items-center justify-center group animate-fade-in transition-colors duration-200"
       >
         {/* Portfolio icon */}
         <svg
-          className="w-6 h-6 text-white transition-transform group-hover:scale-110"
+          className="w-6 h-6 text-white"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -206,13 +206,10 @@ export function FloatingPositionsButton() {
 
         {/* Badge */}
         {positionCount > 0 && (
-          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-white text-xs font-bold flex items-center justify-center shadow-md">
+          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-xs font-bold flex items-center justify-center tabular-nums">
             {displayCount}
           </span>
         )}
-
-        {/* Pulse animation ring */}
-        <span className="absolute inset-0 rounded-full bg-blue-600/30 animate-ping-slow" />
       </button>
 
       {/* Positions Drawer */}
