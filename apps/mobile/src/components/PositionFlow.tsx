@@ -51,12 +51,12 @@ export function PositionFlow({
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/50 z-[60]"
+        className="fixed inset-0 bg-black/50 z-[100]"
         onClick={isExecuting ? undefined : onClose}
       />
 
       {/* Bottom sheet */}
-      <div className="fixed bottom-0 left-0 right-0 z-[70] bg-white border-t border-stone-200 max-h-[90vh] flex flex-col animate-slide-up">
+      <div className="fixed bottom-0 left-0 right-0 z-[110] bg-white border-t border-stone-200 max-h-[90vh] flex flex-col animate-slide-up">
         {/* Handle */}
         <div className="flex justify-center pt-3 pb-1 shrink-0">
           <div className="w-10 h-1 bg-stone-300" />

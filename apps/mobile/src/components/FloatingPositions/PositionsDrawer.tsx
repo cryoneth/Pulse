@@ -117,7 +117,7 @@ export function PositionsDrawer({
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/50 z-[100] animate-fade-in"
+        className="fixed inset-0 bg-black/50 z-[120] animate-fade-in"
         onClick={onClose}
         aria-label="Close positions drawer"
       />
@@ -128,7 +128,7 @@ export function PositionsDrawer({
         role="dialog"
         aria-label="Your positions"
         aria-modal="true"
-        className="fixed bottom-0 left-0 right-0 md:left-1/2 md:-translate-x-1/2 md:max-w-md z-[110] bg-white border-t border-stone-200 md:border md:bottom-auto md:top-1/2 md:-translate-y-1/2 animate-slide-up md:animate-fade-in"
+        className="fixed bottom-0 left-0 right-0 md:left-1/2 md:-translate-x-1/2 md:max-w-md z-[130] bg-white border-t border-stone-200 md:border md:bottom-auto md:top-1/2 md:-translate-y-1/2 animate-slide-up md:animate-fade-in"
         style={{ maxHeight: "85vh" }}
       >
         {/* Swipe handle */}
