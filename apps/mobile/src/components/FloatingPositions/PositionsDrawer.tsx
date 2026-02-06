@@ -12,6 +12,7 @@ interface Position {
   side: "YES" | "NO";
   shares: string;
   sharesRaw: bigint;
+  currentPrice: number;
   yesTokenAddress?: Address;
   noTokenAddress?: Address;
 }
@@ -106,7 +107,7 @@ export function PositionsDrawer({
   if (!visible) return null;
 
   const totalValue = positions.reduce((sum, p) => {
-    return sum + parseFloat(p.shares) * 0.5;
+    return sum + parseFloat(p.shares) * (p.currentPrice / 100);
   }, 0);
 
   const yesPositions = positions.filter((p) => p.side === "YES");
@@ -205,6 +206,7 @@ export function PositionsDrawer({
                     side={pos.side}
                     shares={pos.shares}
                     sharesRaw={pos.sharesRaw}
+                    currentPrice={pos.currentPrice}
                     yesTokenAddress={pos.yesTokenAddress}
                     noTokenAddress={pos.noTokenAddress}
                     address={address}

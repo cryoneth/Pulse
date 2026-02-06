@@ -25,6 +25,7 @@ interface Position {
   side: "YES" | "NO";
   shares: string;
   sharesRaw: bigint;
+  currentPrice: number;
   yesTokenAddress?: Address;
   noTokenAddress?: Address;
 }
@@ -116,6 +117,7 @@ export function FloatingPositionsButton() {
             side: "YES",
             shares: formatUnits(yesBalance, 6),
             sharesRaw: yesBalance,
+            currentPrice: market.yesPrice,
             yesTokenAddress,
             noTokenAddress,
           });
@@ -132,6 +134,7 @@ export function FloatingPositionsButton() {
             side: "NO",
             shares: formatUnits(noBalance, 6),
             sharesRaw: noBalance,
+            currentPrice: market.noPrice,
             yesTokenAddress,
             noTokenAddress,
           });

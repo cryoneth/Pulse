@@ -13,6 +13,7 @@ interface PositionCardProps {
   side: "YES" | "NO";
   shares: string;
   sharesRaw: bigint;
+  currentPrice: number;
   yesTokenAddress?: Address;
   noTokenAddress?: Address;
   address: Address;
@@ -25,6 +26,7 @@ export function PositionCard({
   question,
   side,
   shares,
+  currentPrice,
   yesTokenAddress,
   noTokenAddress,
   address,
@@ -37,7 +39,7 @@ export function PositionCard({
   const { writeContractAsync } = useWriteContract();
 
   const sharesNum = parseFloat(shares);
-  const estimatedValue = sharesNum * 0.5; // Simplified estimate at 50c
+  const estimatedValue = sharesNum * (currentPrice / 100);
 
   // Save transaction to localStorage for portfolio history
   const saveTransaction = useCallback(
@@ -142,17 +144,31 @@ export function PositionCard({
             </p>
           </div>
         </div>
-        <p className="text-sm font-semibold text-stone-900 leading-snug line-clamp-2">
+        <p className="text-sm font-serif font-semibold text-stone-900 leading-snug line-clamp-2">
           {question}
         </p>
-        <div className="flex items-center justify-between mt-2">
-          <Link
-            href={`/market/detail/${marketId}`}
-            onClick={(e) => e.stopPropagation()}
-            className="text-xs text-[#0C4A6E] font-semibold hover:underline"
-          >
-            View Market
-          </Link>
+        <div className="flex items-center justify-between mt-4">
+          <div className="flex items-center gap-4">
+            <Link
+              href={`/market/detail/${marketId}`}
+              onClick={(e) => e.stopPropagation()}
+              className="text-xs text-[#0C4A6E] font-semibold hover:underline uppercase tracking-wider"
+            >
+              View Market
+            </Link>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!isExpanded) {
+                  setSellAmount(shares);
+                }
+                setIsExpanded(!isExpanded);
+              }}
+              className="text-xs text-red-600 font-semibold hover:underline uppercase tracking-wider"
+            >
+              {isExpanded ? "Cancel Sell" : "Sell Position"}
+            </button>
+          </div>
           <svg
             className={`w-4 h-4 text-stone-400 transition-transform ${
               isExpanded ? "rotate-180" : ""
@@ -210,7 +226,7 @@ export function PositionCard({
                 )}
                 {sellAmountNum > 0 && !isOverMax && (
                   <p className="text-xs text-stone-500 mt-1 tabular-nums">
-                    Est. return: ~${(sellAmountNum * 0.5).toFixed(2)} USDC
+                    Est. return: ~${(sellAmountNum * (currentPrice / 100)).toFixed(2)} USDC
                   </p>
                 )}
               </div>
