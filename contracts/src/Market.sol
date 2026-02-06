@@ -21,6 +21,7 @@ contract Market {
     uint256 public constant DISPUTE_WINDOW = 1 hours;
 
     event SharesPurchased(address indexed buyer, bool indexed buyYes, uint256 amount);
+    event SharesSold(address indexed seller, bool indexed soldYes, uint256 amount);
     event MarketResolved(bool outcome);
     event SharesRedeemed(address indexed redeemer, uint256 amount);
 
@@ -61,6 +62,29 @@ contract Market {
         }
 
         emit SharesPurchased(recipient, buyYes, amount);
+    }
+
+    function sell(uint256 amount, bool sellYes) external {
+        require(!resolved, "Market is resolved");
+
+        if (sellYes) {
+            // User returns YES tokens; contract must hold enough NO tokens to burn a pair
+            require(noToken.balanceOf(address(this)) >= amount, "Insufficient opposite tokens");
+            yesToken.transferFrom(msg.sender, address(this), amount);
+            // Burn the matched pair from the contract's holdings
+            yesToken.burn(amount);
+            noToken.burn(amount);
+        } else {
+            require(yesToken.balanceOf(address(this)) >= amount, "Insufficient opposite tokens");
+            noToken.transferFrom(msg.sender, address(this), amount);
+            noToken.burn(amount);
+            yesToken.burn(amount);
+        }
+
+        // Return USDC to the seller
+        IERC20(usdcToken).transfer(msg.sender, amount);
+
+        emit SharesSold(msg.sender, sellYes, amount);
     }
 
     function resolve(bool _outcome) external {

@@ -56,7 +56,7 @@ export function PositionFlow({
       />
 
       {/* Bottom sheet */}
-      <div className="fixed bottom-0 left-0 right-0 z-[70] bg-white rounded-t-2xl shadow-2xl max-h-[85vh] flex flex-col animate-slide-up">
+      <div className="fixed bottom-0 left-0 right-0 z-[70] bg-white rounded-t-2xl shadow-2xl max-h-[90vh] flex flex-col animate-slide-up">
         {/* Handle */}
         <div className="flex justify-center pt-3 pb-1 shrink-0">
           <div className="w-10 h-1 rounded-full bg-gray-300" />
@@ -166,7 +166,7 @@ export function PositionFlow({
         </div>
 
         {/* Fixed footer with CTA — always visible */}
-        <div className="shrink-0 px-5 pt-3 pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] border-t border-gray-100 bg-white rounded-b-none">
+        <div className="shrink-0 px-5 pt-3 pb-6 border-t border-gray-100 bg-white">
           {flowState === "confirming" && (
             <div>
               <button

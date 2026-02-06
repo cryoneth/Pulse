@@ -23,25 +23,63 @@ async function main() {
     console.log("Mock USDC deployed to:", usdcAddress);
   }
 
-  // Deploy MarketFactory
-  console.log("Deploying MarketFactory with USDC:", usdcAddress);
+  // Deploy or reuse MarketFactory
+  const existingFactory = process.env.MARKET_FACTORY;
   const MarketFactory = await ethers.getContractFactory("MarketFactory");
-  const marketFactory = await MarketFactory.deploy(usdcAddress);
-  await marketFactory.waitForDeployment();
+  let marketFactory;
+
+  if (existingFactory) {
+    console.log("Reusing existing MarketFactory at:", existingFactory);
+    marketFactory = MarketFactory.attach(existingFactory);
+  } else {
+    console.log("Deploying MarketFactory with USDC:", usdcAddress);
+    marketFactory = await MarketFactory.deploy(usdcAddress);
+    await marketFactory.waitForDeployment();
+  }
+
   const marketFactoryAddress = await marketFactory.getAddress();
+  console.log("MarketFactory address:", marketFactoryAddress);
 
-  console.log("MarketFactory deployed to:", marketFactoryAddress);
+  // All 8 markets with real questions and future end dates
+  const now = Math.floor(Date.now() / 1000);
+  const ONE_WEEK = 7 * 24 * 60 * 60;
+  const TWO_WEEKS = 14 * 24 * 60 * 60;
+  const ONE_MONTH = 30 * 24 * 60 * 60;
+  const THREE_MONTHS = 90 * 24 * 60 * 60;
 
-  // Create a Demo Market
-  const oneWeekInSeconds = 7 * 24 * 60 * 60;
-  const endTime = Math.floor(Date.now() / 1000) + oneWeekInSeconds;
+  const markets = [
+    { question: "Will the Lakers win the 2025 NBA Championship?", endTime: now + THREE_MONTHS },
+    { question: "Will Taylor Swift announce a new album before July?", endTime: now + THREE_MONTHS },
+    { question: "Will Bitcoin hit $150k in 2025?", endTime: now + THREE_MONTHS },
+    { question: "Will the Super Bowl LIX have over 120M viewers?", endTime: now + ONE_MONTH },
+    { question: "Will a Marvel movie gross $1B+ in 2025?", endTime: now + THREE_MONTHS },
+    { question: "Will Ethereum flip Bitcoin in market cap this year?", endTime: now + THREE_MONTHS },
+    { question: "Will Drake release a new album in Q1 2025?", endTime: now + TWO_WEEKS },
+    { question: "Will the Warriors make the NBA playoffs?", endTime: now + ONE_MONTH },
+  ];
 
-  console.log("Creating demo market...");
-  const tx = await marketFactory.createMarket("Will ETH reach $10k by 2026?", endTime);
-  await tx.wait();
+  console.log(`\nCreating ${markets.length} markets...\n`);
 
-  const marketAddress = await marketFactory.markets(0);
-  console.log("Demo Market created at:", marketAddress);
+  for (let i = 0; i < markets.length; i++) {
+    const { question, endTime } = markets[i];
+    console.log(`Creating market ${i}: "${question}"...`);
+    try {
+      const tx = await marketFactory.createMarket(question, endTime, {
+        gasLimit: 5_000_000,
+      });
+      const receipt = await tx.wait();
+      console.log(`  tx: ${receipt?.hash}`);
+
+      const marketAddress = await marketFactory.markets(i);
+      console.log(`  Market ${i}: ${marketAddress}`);
+      console.log(`  Ends: ${new Date(endTime * 1000).toISOString()}\n`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`  FAILED: ${msg}\n`);
+    }
+  }
+
+  console.log("All markets deployed successfully!");
 }
 
 main().catch((error) => {

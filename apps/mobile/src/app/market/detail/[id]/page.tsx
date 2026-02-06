@@ -5,16 +5,18 @@ import { getMarketById } from "@/lib/mock-markets";
 import Link from "next/link";
 import {
   useReadContract,
+  useWriteContract,
   useBalance,
   useAccount,
   useConnectorClient,
   useSwitchChain,
   useConfig,
 } from "wagmi";
-import { type Address, formatUnits } from "viem";
+import { type Address, formatUnits, parseUnits } from "viem";
 import { getConnectorClient } from "wagmi/actions";
 import { PositionFlow } from "@/components/PositionFlow";
 import { WalletButton } from "@/components/WalletButton";
+import PriceHistoryChart from "@/components/PriceHistoryChart";
 import {
   initLifi,
   reinitLifi,
@@ -24,6 +26,10 @@ import {
   findBestSource,
   verifyPosition,
   SOURCE_OPTIONS,
+  SELL_ABI,
+  ERC20_APPROVE_ABI,
+  MARKET_TOKEN_ABI,
+  BASE_CHAIN_ID,
   type PositionStep,
   type SourceOption,
   type BestSourceResult,
@@ -117,6 +123,13 @@ export default function MarketDetailPage({
   // Verified position shares
   const [confirmedShares, setConfirmedShares] = useState<string | undefined>();
 
+  // Sell flow state
+  const [sellAmount, setSellAmount] = useState("");
+  const [sellSide, setSellSide] = useState<"YES" | "NO">("YES");
+  const [sellState, setSellState] = useState<"idle" | "approving" | "selling" | "success" | "error">("idle");
+  const [sellError, setSellError] = useState("");
+  const { writeContractAsync } = useWriteContract();
+
   // Source search filter
   const [sourceSearch, setSourceSearch] = useState("");
 
@@ -157,6 +170,107 @@ export default function MarketDetailPage({
     abi: MARKET_ABI,
     functionName: "endTime",
   });
+
+  // Read YES/NO token addresses from the market contract
+  const { data: yesTokenAddress } = useReadContract({
+    address: isContract ? (id as Address) : undefined,
+    abi: MARKET_TOKEN_ABI,
+    functionName: "yesToken",
+    chainId: BASE_CHAIN_ID,
+  });
+
+  const { data: noTokenAddress } = useReadContract({
+    address: isContract ? (id as Address) : undefined,
+    abi: MARKET_TOKEN_ABI,
+    functionName: "noToken",
+    chainId: BASE_CHAIN_ID,
+  });
+
+  // Read user's YES/NO token balances
+  const ERC20_BALANCE_ABI_LOCAL = [
+    {
+      inputs: [{ name: "account", type: "address" }],
+      name: "balanceOf",
+      outputs: [{ name: "", type: "uint256" }],
+      stateMutability: "view",
+      type: "function",
+    },
+  ] as const;
+
+  const { data: yesBalance, refetch: refetchYesBalance } = useReadContract({
+    address: yesTokenAddress as Address | undefined,
+    abi: ERC20_BALANCE_ABI_LOCAL,
+    functionName: "balanceOf",
+    args: address ? [address] : undefined,
+    chainId: BASE_CHAIN_ID,
+    query: { enabled: !!address && !!yesTokenAddress },
+  });
+
+  const { data: noBalance, refetch: refetchNoBalance } = useReadContract({
+    address: noTokenAddress as Address | undefined,
+    abi: ERC20_BALANCE_ABI_LOCAL,
+    functionName: "balanceOf",
+    args: address ? [address] : undefined,
+    chainId: BASE_CHAIN_ID,
+    query: { enabled: !!address && !!noTokenAddress },
+  });
+
+  const yesBalanceFormatted = yesBalance ? formatUnits(yesBalance as bigint, 6) : "0";
+  const noBalanceFormatted = noBalance ? formatUnits(noBalance as bigint, 6) : "0";
+  const hasYes = parseFloat(yesBalanceFormatted) > 0;
+  const hasNo = parseFloat(noBalanceFormatted) > 0;
+  const hasPosition = hasYes || hasNo;
+
+  // Auto-select sell side based on what the user holds
+  useEffect(() => {
+    if (hasYes && !hasNo) setSellSide("YES");
+    else if (hasNo && !hasYes) setSellSide("NO");
+  }, [hasYes, hasNo]);
+
+  // Sell handler
+  const handleSell = useCallback(async () => {
+    if (!sellAmount || !address || !isContract) return;
+    const sellAmountRaw = parseUnits(sellAmount, 6);
+    const tokenAddr = sellSide === "YES" ? (yesTokenAddress as Address) : (noTokenAddress as Address);
+
+    setSellState("approving");
+    setSellError("");
+
+    try {
+      // Step 1: Approve the market contract to spend the user's share tokens
+      await writeContractAsync({
+        address: tokenAddr,
+        abi: ERC20_APPROVE_ABI,
+        functionName: "approve",
+        args: [id as Address, sellAmountRaw],
+        chainId: BASE_CHAIN_ID,
+      });
+
+      // Step 2: Call sell() on the market contract
+      setSellState("selling");
+      await writeContractAsync({
+        address: id as Address,
+        abi: SELL_ABI,
+        functionName: "sell",
+        args: [sellAmountRaw, sellSide === "YES"],
+        chainId: BASE_CHAIN_ID,
+      });
+
+      setSellState("success");
+      setSellAmount("");
+      // Refresh balances
+      refetchYesBalance();
+      refetchNoBalance();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Sell failed";
+      if (msg.includes("rejected") || msg.includes("denied")) {
+        setSellError("Transaction cancelled");
+      } else {
+        setSellError(msg.length > 100 ? msg.slice(0, 100) + "..." : msg);
+      }
+      setSellState("error");
+    }
+  }, [sellAmount, address, isContract, sellSide, yesTokenAddress, noTokenAddress, id, writeContractAsync, refetchYesBalance, refetchNoBalance]);
 
   const displayQuestion = isContract ? question : mockMarket?.question;
   const displayEnd =
@@ -214,11 +328,11 @@ export default function MarketDetailPage({
     if (!address) return null;
     if (isNativeToken && nativeBalance) {
       const val = parseFloat(formatUnits(nativeBalance.value, nativeBalance.decimals));
-      return val < 0.0001 ? "0" : val.toFixed(4);
+      return val < 0.01 ? "0" : val.toFixed(2);
     }
     if (!isNativeToken && erc20Balance !== undefined && erc20Decimals !== undefined) {
       const val = parseFloat(formatUnits(erc20Balance as bigint, erc20Decimals as number));
-      return val < 0.0001 ? "0" : val.toFixed(4);
+      return val < 0.01 ? "0" : val.toFixed(2);
     }
     return null;
   })();
@@ -358,7 +472,7 @@ export default function MarketDetailPage({
 
   const amountNum = parseFloat(amount) || 0;
   const insufficientHint = amountNum <= 0 && amount.length > 0;
-  const belowMinimum = false; // TODO: restore to `amountNum > 0 && amountNum < 5` after testing
+  const belowMinimum = amountNum > 0 && amountNum < 5;
 
   if (!displayQuestion && isContract)
     return <div className="p-8 text-center text-muted">Loading...</div>;
@@ -392,9 +506,10 @@ export default function MarketDetailPage({
         </div>
 
         {/* Chart Area */}
-        <div className="clean-card h-48 mb-8 flex items-center justify-center bg-gray-50 text-muted text-xs font-semibold uppercase tracking-wider">
-          Price History Chart
-        </div>
+        <PriceHistoryChart
+          marketId={id}
+          yesPrice={mockMarket?.yesPrice ?? 50}
+        />
 
         {/* Action Panel */}
         <div className="clean-card p-4">
@@ -626,6 +741,112 @@ export default function MarketDetailPage({
             your wallet.
           </p>
         </div>
+
+        {/* Sell Panel — only for contract markets when user has a position */}
+        {isContract && address && hasPosition && (
+          <div className="clean-card p-4 mt-4">
+            <h2 className="text-sm font-bold mb-4 uppercase tracking-wide text-muted">
+              Sell Position
+            </h2>
+
+            {/* Position summary */}
+            <div className="flex gap-3 mb-4">
+              {hasYes && (
+                <div className="flex-1 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+                  <p className="text-xs font-bold text-emerald-600">YES shares</p>
+                  <p className="text-lg font-bold text-emerald-700">{parseFloat(yesBalanceFormatted).toFixed(2)}</p>
+                </div>
+              )}
+              {hasNo && (
+                <div className="flex-1 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  <p className="text-xs font-bold text-red-600">NO shares</p>
+                  <p className="text-lg font-bold text-red-700">{parseFloat(noBalanceFormatted).toFixed(2)}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Sell side toggle (only if user has both) */}
+            {hasYes && hasNo && (
+              <div className="flex p-1 bg-gray-100 rounded-lg mb-4">
+                <button
+                  onClick={() => setSellSide("YES")}
+                  className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${
+                    sellSide === "YES"
+                      ? "bg-white shadow-sm text-emerald-500"
+                      : "text-muted hover:text-main"
+                  }`}
+                >
+                  Sell YES
+                </button>
+                <button
+                  onClick={() => setSellSide("NO")}
+                  className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${
+                    sellSide === "NO"
+                      ? "bg-white shadow-sm text-red-500"
+                      : "text-muted hover:text-main"
+                  }`}
+                >
+                  Sell NO
+                </button>
+              </div>
+            )}
+
+            {/* Sell amount input */}
+            <div className="mb-4">
+              <div className="flex justify-between items-baseline mb-1.5">
+                <label className="text-xs font-bold text-muted">
+                  Amount to sell
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setSellAmount(sellSide === "YES" ? yesBalanceFormatted : noBalanceFormatted)}
+                  className="text-xs text-blue-500 font-semibold hover:text-blue-700 transition-colors"
+                >
+                  Max: {parseFloat(sellSide === "YES" ? yesBalanceFormatted : noBalanceFormatted).toFixed(2)}
+                </button>
+              </div>
+              <input
+                type="number"
+                value={sellAmount}
+                onChange={(e) => {
+                  setSellAmount(e.target.value);
+                  if (sellState === "success" || sellState === "error") setSellState("idle");
+                }}
+                className="clean-input font-bold text-lg"
+                placeholder="0.00"
+              />
+            </div>
+
+            {/* Sell button */}
+            <button
+              onClick={handleSell}
+              disabled={
+                !sellAmount ||
+                parseFloat(sellAmount) <= 0 ||
+                sellState === "approving" ||
+                sellState === "selling"
+              }
+              className="w-full py-3 rounded-lg text-white font-bold text-base transition-colors disabled:opacity-50 disabled:cursor-not-allowed bg-gray-800 hover:bg-gray-900"
+            >
+              {sellState === "approving"
+                ? "Approving..."
+                : sellState === "selling"
+                ? "Selling..."
+                : `Sell ${sellSide} for USDC`}
+            </button>
+
+            {sellState === "success" && (
+              <p className="text-xs text-emerald-600 font-semibold text-center mt-3">
+                Sold successfully! USDC returned to your wallet.
+              </p>
+            )}
+            {sellState === "error" && sellError && (
+              <p className="text-xs text-red-500 font-semibold text-center mt-3">
+                {sellError}
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Position Flow Bottom Sheet */}

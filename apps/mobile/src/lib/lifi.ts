@@ -62,6 +62,34 @@ const BUY_FOR_ABI = [
   },
 ] as const;
 
+// ABI for Market.sell()
+export const SELL_ABI = [
+  {
+    inputs: [
+      { internalType: "uint256", name: "amount", type: "uint256" },
+      { internalType: "bool", name: "sellYes", type: "bool" },
+    ],
+    name: "sell",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+] as const;
+
+// ERC20 approve ABI
+export const ERC20_APPROVE_ABI = [
+  {
+    inputs: [
+      { internalType: "address", name: "spender", type: "address" },
+      { internalType: "uint256", name: "amount", type: "uint256" },
+    ],
+    name: "approve",
+    outputs: [{ internalType: "bool", name: "", type: "bool" }],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+] as const;
+
 // Base mainnet USDC
 export const BASE_USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 export const BASE_CHAIN_ID = 8453;
@@ -541,7 +569,7 @@ export async function findBestSource(
 // Feature 2: Position verification — poll token balance after execution
 // ---------------------------------------------------------------------------
 
-const MARKET_TOKEN_ABI = [
+export const MARKET_TOKEN_ABI = [
   {
     inputs: [],
     name: "yesToken",

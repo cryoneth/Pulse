@@ -31,4 +31,5 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
-2026-02-02-implement-the-following-plan.txt
+# Session logs
+2026-*.txt
