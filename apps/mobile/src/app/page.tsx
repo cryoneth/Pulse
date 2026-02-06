@@ -125,7 +125,19 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="space-y-3">
+              {/* Added: Market Insights for more height and value */}
+              <div className="bg-[#0C4A6E] text-white p-5 mb-6">
+                <h3 className="text-xs font-medium uppercase tracking-widest mb-3 opacity-80">Portfolio Insights</h3>
+                <p className="text-sm font-serif italic mb-3 leading-relaxed">
+                  "Your crypto-heavy exposure is currently 12% higher than the market average. Consider diversifying into politics or sports to hedge against volatility."
+                </p>
+                <div className="w-full bg-white/20 h-1 mt-4">
+                  <div className="bg-sky-400 h-1 w-[65%]"></div>
+                </div>
+                <p className="text-[10px] mt-2 opacity-60 uppercase tracking-tighter">Diversification Score: 65/100</p>
+              </div>
+
+              <div className="space-y-3 mb-8">
                 <p className="text-[10px] font-medium text-stone-400 uppercase tracking-widest px-1">Active Positions</p>
                 {mockPositions.map((pos, idx) => (
                   <div key={idx} className="bg-white border border-stone-200 p-4 flex justify-between items-center">
@@ -143,6 +155,31 @@ export default function Home() {
                     </div>
                   </div>
                 ))}
+              </div>
+
+              {/* Added: Recent Activity for more height */}
+              <div className="space-y-3">
+                <p className="text-[10px] font-medium text-stone-400 uppercase tracking-widest px-1">Recent Activity</p>
+                <div className="bg-white border border-stone-200 p-4 flex justify-between items-center opacity-60">
+                   <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-green-50 flex items-center justify-center text-green-600 text-xs font-bold">IN</div>
+                      <div>
+                        <p className="text-xs font-semibold text-stone-900">Bought YES Shares</p>
+                        <p className="text-[10px] text-stone-400">2 hours ago</p>
+                      </div>
+                   </div>
+                   <p className="text-xs font-semibold text-stone-900">-$24.50</p>
+                </div>
+                <div className="bg-white border border-stone-200 p-4 flex justify-between items-center opacity-60">
+                   <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-blue-50 flex items-center justify-center text-[#0C4A6E] text-xs font-bold">TX</div>
+                      <div>
+                        <p className="text-xs font-semibold text-stone-900">Wallet Funded</p>
+                        <p className="text-[10px] text-stone-400">Yesterday</p>
+                      </div>
+                   </div>
+                   <p className="text-xs font-semibold text-stone-900">+$100.00</p>
+                </div>
               </div>
             </section>
           )}
