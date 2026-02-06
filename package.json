@@ -6,6 +6,8 @@
     "contracts"
   ],
   "scripts": {
+    "install": "npm install --workspace=temp_pulse_pwa",
+    "build": "npm run build --workspace=temp_pulse_pwa",
     "mobile:dev": "npm run dev --workspace=temp_pulse_pwa",
     "mobile:build": "npm run build --workspace=temp_pulse_pwa",
     "api:dev": "npm run dev --workspace=api"
