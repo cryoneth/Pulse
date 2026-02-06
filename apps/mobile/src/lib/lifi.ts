@@ -206,10 +206,36 @@ export async function getPositionQuote(
 }
 
 export async function fetchQuote(params: QuoteParams): Promise<Route> {
+  // Check if source is already USDC on Base (no swap/bridge needed)
+  const isSameToken =
+    params.fromChainId === BASE_CHAIN_ID &&
+    params.fromTokenAddress.toLowerCase() === BASE_USDC.toLowerCase();
+
   // If no real market contract deployed, fall back to a simple swap+bridge
   // so the LI.FI flow can be tested end-to-end
   const isRealContract =
     params.marketAddress !== ("0x0000000000000000000000000000000000000001" as Address);
+
+  // Special case: USDC on Base with real contract
+  // LI.FI can't handle this (no swap/bridge needed), so we return a special route
+  // that will be executed directly via wagmi
+  if (isSameToken && isRealContract) {
+    return {
+      steps: [],
+      id: "direct-base-usdc",
+      _directParams: {
+        marketAddress: params.marketAddress,
+        side: params.side,
+        amountUSDC: params.amountUSDC,
+        recipient: params.recipient,
+      },
+    };
+  }
+
+  // Same token without real contract (for testing)
+  if (isSameToken) {
+    return { steps: [], id: "same-chain-same-token" };
+  }
 
   if (isRealContract) {
     const request = await getPositionQuote(params);
@@ -219,17 +245,6 @@ export async function fetchQuote(params: QuoteParams): Promise<Route> {
 
   // Fallback: use getRoutes for a plain swap/bridge to USDC on Base
   // This lets you test the full LI.FI flow before deploying the market contract
-
-  const isSameToken =
-    params.fromChainId === BASE_CHAIN_ID &&
-    params.fromTokenAddress.toLowerCase() === BASE_USDC.toLowerCase();
-
-  if (isSameToken) {
-    // Already USDC on Base — no swap/bridge needed. Return a synthetic
-    // empty route so the UI can show "Placing position" only.
-    return { steps: [], id: "same-chain-same-token" };
-  }
-
   const { getRoutes } = await import("@lifi/sdk");
   const decimals = params.fromDecimals ?? 6;
   const fromAmountRaw = BigInt(
@@ -254,8 +269,34 @@ export async function fetchQuote(params: QuoteParams): Promise<Route> {
 
 export type StepCallback = (steps: PositionStep[]) => void;
 
+/** Check if a route is a direct USDC on Base route (no LI.FI needed) */
+export function isDirectRoute(route: Route): boolean {
+  return route.id === "direct-base-usdc";
+}
+
+/** Get direct route params if applicable */
+export function getDirectRouteParams(route: Route): {
+  marketAddress: Address;
+  side: "YES" | "NO";
+  amountUSDC: string;
+  recipient: Address;
+} | null {
+  if (route.id === "direct-base-usdc" && route._directParams) {
+    return route._directParams;
+  }
+  return null;
+}
+
 export function mapRouteToSteps(route: Route): PositionStep[] {
   const steps: PositionStep[] = [];
+
+  // Direct USDC on Base route - just approve and buy
+  if (route.id === "direct-base-usdc") {
+    steps.push({ label: "Approving USDC", status: "pending" });
+    steps.push({ label: "Placing position", status: "pending" });
+    return steps;
+  }
+
   const lifiSteps = route.steps || [];
 
   for (const step of lifiSteps) {

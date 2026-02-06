@@ -25,17 +25,35 @@ import {
   mapRouteToSteps,
   findBestSource,
   verifyPosition,
+  isDirectRoute,
+  getDirectRouteParams,
   SOURCE_OPTIONS,
   SELL_ABI,
   ERC20_APPROVE_ABI,
   MARKET_TOKEN_ABI,
   BASE_CHAIN_ID,
+  BASE_USDC,
   type PositionStep,
   type SourceOption,
   type BestSourceResult,
 } from "@/lib/lifi";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Route = any;
+
+// ABI for Market.buyFor
+const BUY_FOR_ABI = [
+  {
+    inputs: [
+      { internalType: "uint256", name: "amount", type: "uint256" },
+      { internalType: "bool", name: "buyYes", type: "bool" },
+      { internalType: "address", name: "recipient", type: "address" },
+    ],
+    name: "buyFor",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+] as const;
 
 // ABI for Market Contract (read-only)
 const MARKET_ABI = [
@@ -72,6 +90,30 @@ type FlowState =
   | "verifying"
   | "success"
   | "error";
+
+// Helper to save transaction to localStorage for portfolio history
+function saveTransaction(
+  address: string,
+  txHash: string,
+  type: "buy" | "sell" | "approve",
+  side: "YES" | "NO",
+  amount: string,
+  chainId: number = BASE_CHAIN_ID
+) {
+  const key = `pulse_txns_${address}`;
+  const existing = localStorage.getItem(key);
+  const txns = existing ? JSON.parse(existing) : [];
+  txns.unshift({
+    hash: txHash,
+    type,
+    side,
+    amount,
+    timestamp: Date.now(),
+    chainId,
+  });
+  // Keep only last 50 transactions
+  localStorage.setItem(key, JSON.stringify(txns.slice(0, 50)));
+}
 
 export default function MarketDetailPage({
   params,
@@ -266,13 +308,16 @@ export default function MarketDetailPage({
 
       // Step 2: Call sell() on the market contract
       setSellState("selling");
-      await writeContractAsync({
+      const sellTxHash = await writeContractAsync({
         address: id as Address,
         abi: SELL_ABI,
         functionName: "sell",
         args: [sellAmountRaw, sellSide === "YES"],
         chainId: BASE_CHAIN_ID,
       });
+
+      // Save sell transaction to history
+      saveTransaction(address, sellTxHash, "sell", sellSide, sellAmount);
 
       setSellState("success");
       setSellAmount("");
@@ -402,11 +447,124 @@ export default function MarketDetailPage({
       ? (id as Address)
       : ("0x0000000000000000000000000000000000000001" as Address);
 
+    // Handle direct USDC on Base route (no LI.FI needed)
+    if (isDirectRoute(route)) {
+      const directParams = getDirectRouteParams(route);
+      if (!directParams || !address) {
+        setErrorMessage("Invalid route parameters");
+        setErrorRecoverable(false);
+        setFlowState("error");
+        return;
+      }
+
+      const currentSteps = mapRouteToSteps(route);
+      currentSteps[0].status = "active";
+      setSteps([...currentSteps]);
+
+      try {
+        // Step 1: Approve USDC
+        const amountRaw = parseUnits(directParams.amountUSDC, 6);
+
+        await writeContractAsync({
+          address: BASE_USDC as Address,
+          abi: ERC20_APPROVE_ABI,
+          functionName: "approve",
+          args: [directParams.marketAddress, amountRaw],
+          chainId: BASE_CHAIN_ID,
+        });
+
+        currentSteps[0].status = "complete";
+        currentSteps[1].status = "active";
+        setSteps([...currentSteps]);
+
+        // Step 2: Call buyFor
+        const txHash = await writeContractAsync({
+          address: directParams.marketAddress,
+          abi: BUY_FOR_ABI,
+          functionName: "buyFor",
+          args: [amountRaw, directParams.side === "YES", directParams.recipient],
+          chainId: BASE_CHAIN_ID,
+        });
+
+        currentSteps[1].status = "complete";
+        currentSteps[1].txHash = txHash;
+        setSteps([...currentSteps]);
+        setSuccessTxHash(txHash);
+
+        // Save transaction to history
+        saveTransaction(address, txHash, "buy", directParams.side, directParams.amountUSDC);
+
+        // Verify position
+        if (isContract && address) {
+          setFlowState("verifying");
+          setSteps((prev) => [
+            ...prev,
+            { label: "Verifying position...", status: "verifying" as const },
+          ]);
+
+          try {
+            const verified = await verifyPosition({
+              marketAddress: marketAddr,
+              side,
+              owner: address,
+            });
+
+            if (verified) {
+              setConfirmedShares(verified.shares);
+              setSteps((prev) =>
+                prev.map((s) =>
+                  s.label === "Verifying position..."
+                    ? { ...s, label: `${verified.shares} ${side} shares received`, status: "complete" as const }
+                    : s
+                )
+              );
+            } else {
+              setSteps((prev) =>
+                prev.map((s) =>
+                  s.label === "Verifying position..."
+                    ? { ...s, label: "Position placed (verification pending)", status: "complete" as const }
+                    : s
+                )
+              );
+            }
+          } catch {
+            setSteps((prev) =>
+              prev.map((s) =>
+                s.label === "Verifying position..."
+                  ? { ...s, label: "Position placed", status: "complete" as const }
+                  : s
+              )
+            );
+          }
+        }
+
+        setFlowState("success");
+        return;
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Transaction failed";
+        if (message.includes("rejected") || message.includes("denied")) {
+          setErrorMessage("Transaction cancelled");
+          setErrorRecoverable(true);
+        } else {
+          setErrorMessage(message.length > 100 ? message.slice(0, 100) + "..." : message);
+          setErrorRecoverable(true);
+        }
+        setFlowState("error");
+        return;
+      }
+    }
+
+    // Standard LI.FI execution for cross-chain/swap routes
     await executePosition(
       route,
       (updatedSteps) => setSteps(updatedSteps),
       async (txHash) => {
         setSuccessTxHash(txHash);
+
+        // Save transaction to history
+        if (address && txHash) {
+          saveTransaction(address, txHash, "buy", side, amount, source.chainId);
+        }
 
         // Only verify on real contracts
         if (isContract && address) {
@@ -462,7 +620,7 @@ export default function MarketDetailPage({
         setFlowState("error");
       }
     );
-  }, [route, isContract, id, address, side]);
+  }, [route, isContract, id, address, side, writeContractAsync]);
 
   const handleRetry = useCallback(() => {
     handleExecute();
