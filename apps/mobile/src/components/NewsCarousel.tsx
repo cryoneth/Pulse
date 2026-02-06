@@ -87,10 +87,18 @@ const categoryColors: Record<string, string> = {
 export function NewsCarousel() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [flippedCards, setFlippedCards] = useState<Set<number>>(new Set());
-  const [isDragging, setIsDragging] = useState(false);
-  const [startX, setStartX] = useState(0);
-  const [currentX, setCurrentX] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
   const deckRef = useRef<HTMLDivElement>(null);
+
+  // Track screen size for responsive distance
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   const nextCard = useCallback(() => {
     setCurrentIndex((prev) => (prev + 1) % newsData.length);
@@ -105,7 +113,7 @@ export function NewsCarousel() {
   }, []);
 
   const toggleFlip = useCallback((index: number) => {
-    if (index === currentIndex && !isDragging) {
+    if (index === currentIndex) {
       setFlippedCards((prev) => {
         const next = new Set(prev);
         if (next.has(index)) {
@@ -116,7 +124,7 @@ export function NewsCarousel() {
         return next;
       });
     }
-  }, [currentIndex, isDragging]);
+  }, [currentIndex]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -137,40 +145,39 @@ export function NewsCarousel() {
     const deck = deckRef.current;
     if (!deck) return;
 
-    let dragStartX = 0;
-    let dragging = false;
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let isDraggingHorizontal = false;
 
     const handleTouchStart = (e: TouchEvent) => {
-      dragStartX = e.touches[0].clientX;
-      dragging = false;
-      setStartX(e.touches[0].clientX);
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+      isDraggingHorizontal = false;
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      const diffX = e.touches[0].clientX - dragStartX;
-      const diffY = e.touches[0].clientY - startX;
+      const diffX = e.touches[0].clientX - touchStartX;
+      const diffY = e.touches[0].clientY - touchStartY;
 
       // If horizontal movement is greater, prevent default to stop page scroll
       if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 10) {
         e.preventDefault();
-        dragging = true;
-        setIsDragging(true);
+        isDraggingHorizontal = true;
       }
-      setCurrentX(e.touches[0].clientX);
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
-      if (dragging) {
-        const diffX = e.changedTouches[0].clientX - dragStartX;
-        if (diffX > 50) {
-          prevCard();
-        } else if (diffX < -50) {
+      if (isDraggingHorizontal) {
+        const diffX = e.changedTouches[0].clientX - touchStartX;
+        // Swipe left (negative diff) = show next card (cards move left)
+        // Swipe right (positive diff) = show previous card (cards move right)
+        if (diffX < -50) {
           nextCard();
+        } else if (diffX > 50) {
+          prevCard();
         }
       }
-      setTimeout(() => {
-        setIsDragging(false);
-      }, 10);
+      isDraggingHorizontal = false;
     };
 
     // Add listeners with passive: false for touch events
@@ -183,16 +190,17 @@ export function NewsCarousel() {
       deck.removeEventListener("touchmove", handleTouchMove);
       deck.removeEventListener("touchend", handleTouchEnd);
     };
-  }, [nextCard, prevCard, startX]);
+  }, [nextCard, prevCard]);
 
   // Mouse drag handling
+  const mouseStartX = useRef(0);
+
   const handleMouseDown = (e: React.MouseEvent) => {
-    setStartX(e.clientX);
-    setIsDragging(false);
+    mouseStartX.current = e.clientX;
   };
 
   const handleMouseUp = (e: React.MouseEvent) => {
-    const diff = e.clientX - startX;
+    const diff = e.clientX - mouseStartX.current;
     if (Math.abs(diff) > 50) {
       if (diff > 0) prevCard();
       else nextCard();
@@ -210,7 +218,8 @@ export function NewsCarousel() {
 
     const angleStep = 360 / total;
     const angle = adjustedOffset * angleStep;
-    const distance = 350;
+    // Responsive distance: smaller on mobile to keep cards visible
+    const distance = isMobile ? 160 : 350;
 
     const x = Math.sin((angle * Math.PI) / 180) * distance;
     const z = Math.cos((angle * Math.PI) / 180) * distance - distance;
@@ -226,16 +235,16 @@ export function NewsCarousel() {
       opacity = 1;
       zIndex = 10;
     } else if (absOffset === 1) {
-      scale = 0.9;
-      opacity = 0.85;
+      scale = isMobile ? 0.85 : 0.9;
+      opacity = isMobile ? 0.7 : 0.85;
       zIndex = 5;
     } else if (absOffset === 2) {
-      scale = 0.8;
-      opacity = 0.65;
+      scale = isMobile ? 0.7 : 0.8;
+      opacity = isMobile ? 0.5 : 0.65;
       zIndex = 3;
     } else {
-      scale = 0.7;
-      opacity = 0.5;
+      scale = isMobile ? 0.6 : 0.7;
+      opacity = isMobile ? 0.3 : 0.5;
       zIndex = 1;
     }
 
@@ -247,12 +256,12 @@ export function NewsCarousel() {
   };
 
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative overflow-visible">
       {/* Carousel Container */}
       <div
-        className="relative h-[520px] sm:h-[560px] md:h-[600px] mx-auto max-w-full"
+        className="relative h-[460px] sm:h-[520px] md:h-[580px] mx-auto max-w-full overflow-visible"
         style={{
-          perspective: "2000px",
+          perspective: "1200px",
           touchAction: "pan-y", // Allow vertical scroll, prevent horizontal
         }}
       >
@@ -271,7 +280,7 @@ export function NewsCarousel() {
             return (
               <div
                 key={news.id}
-                className="absolute left-1/2 top-1/2 w-[300px] h-[450px] sm:w-[340px] sm:h-[480px] md:w-[400px] md:h-[500px]"
+                className="absolute left-1/2 top-1/2 w-[260px] h-[400px] sm:w-[320px] sm:h-[460px] md:w-[400px] md:h-[500px]"
                 style={{
                   ...style,
                   transformStyle: "preserve-3d",
