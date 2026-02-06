@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Playfair_Display, Source_Sans_3 } from "next/font/go
 import "./globals.css";
 import { Providers } from "./providers";
 import { BottomNav } from "@/components/BottomNav";
+import { FloatingPositionsButton } from "@/components/FloatingPositions";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -52,6 +53,7 @@ export default function RootLayout({
       >
         <Providers>
           {children}
+          <FloatingPositionsButton />
           <BottomNav />
         </Providers>
       </body>
