@@ -146,12 +146,12 @@ function generateSeries(marketId: string, yesPrice: number): number[] {
 }
 
 // --- Constants ---
-const LINE_COLOR = "#2563EB";
-const GRADIENT_TOP = "rgba(37, 99, 235, 0.18)";
-const GRADIENT_BOT = "rgba(37, 99, 235, 0)";
-const GRID_COLOR = "rgba(0,0,0,0.04)";
-const LABEL_COLOR = "#9CA3AF";
-const DOT_PULSE_PERIOD = 2000; // ms for one full pulse cycle
+const LINE_COLOR = "#0C4A6E"; // Editorial Navy
+const GRADIENT_TOP = "rgba(12, 74, 110, 0.08)";
+const GRADIENT_BOT = "rgba(12, 74, 110, 0)";
+const GRID_COLOR = "rgba(0,0,0,0.06)";
+const LABEL_COLOR = "#78716c"; // stone-500
+const DOT_PULSE_PERIOD = 2500; // slower, more dignified pulse
 
 interface PriceHistoryChartProps {
   marketId: string;
@@ -198,8 +198,8 @@ export default function PriceHistoryChart({
 
     const chartLeft = 32;
     const chartRight = w - 12;
-    const chartTop = 12;
-    const chartBot = h - 20;
+    const chartTop = 16;
+    const chartBot = h - 24;
     const chartH = chartBot - chartTop;
     const chartW = chartRight - chartLeft;
 
@@ -210,6 +210,7 @@ export default function PriceHistoryChart({
 
     // Horizontal grid lines
     ctx.strokeStyle = GRID_COLOR;
+    ctx.setLineDash([2, 2]); // Dotted lines for editorial look
     ctx.lineWidth = 1;
     const gridLines = 3;
     for (let g = 0; g <= gridLines; g++) {
@@ -219,41 +220,34 @@ export default function PriceHistoryChart({
       ctx.lineTo(w, gy);
       ctx.stroke();
     }
+    ctx.setLineDash([]); // Reset for main line
 
     // Y-axis labels (left side)
     ctx.fillStyle = LABEL_COLOR;
-    ctx.font = "10px -apple-system, BlinkMacSystemFont, sans-serif";
+    ctx.font = "bold 10px tabular-nums, sans-serif";
     ctx.textAlign = "right";
     for (let g = 0; g <= gridLines; g++) {
       const val = yMax - (g / gridLines) * (yMax - yMin);
       const gy = chartTop + (g / gridLines) * chartH;
-      ctx.fillText(`${Math.round(val)}¢`, chartLeft - 4, gy - 3);
+      ctx.fillText(`${Math.round(val)}¢`, chartLeft - 6, gy + 3);
     }
 
-    // Build smooth path using cardinal spline
-    const tension = 0.3;
+    // Build path
     const pts: [number, number][] = data.map((v, i) => [toX(i), toY(v)]);
-
     ctx.beginPath();
     ctx.moveTo(pts[0][0], pts[0][1]);
 
     for (let i = 0; i < pts.length - 1; i++) {
-      const p0 = pts[Math.max(0, i - 1)];
       const p1 = pts[i];
       const p2 = pts[i + 1];
-      const p3 = pts[Math.min(pts.length - 1, i + 2)];
-
-      const cp1x = p1[0] + ((p2[0] - p0[0]) * tension) / 3;
-      const cp1y = p1[1] + ((p2[1] - p0[1]) * tension) / 3;
-      const cp2x = p2[0] - ((p3[0] - p1[0]) * tension) / 3;
-      const cp2y = p2[1] - ((p3[1] - p1[1]) * tension) / 3;
-
-      ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2[0], p2[1]);
+      const midX = (p1[0] + p2[0]) / 2;
+      ctx.quadraticCurveTo(p1[0], p1[1], midX, (p1[1] + p2[1]) / 2);
     }
+    ctx.lineTo(pts[pts.length - 1][0], pts[pts.length - 1][1]);
 
     // Stroke line
     ctx.strokeStyle = LINE_COLOR;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.5;
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
     ctx.stroke();
@@ -269,34 +263,24 @@ export default function PriceHistoryChart({
     ctx.fillStyle = gradient;
     ctx.fill();
 
-    // Endpoint dot with gentle pulse
+    // Endpoint dot (Sharp, no ring for ink look)
     const lastPt = pts[pts.length - 1];
-    const pulse = Math.sin((timestamp / DOT_PULSE_PERIOD) * Math.PI * 2);
-    const dotRadius = 3.5 + pulse * 0.8; // 2.7 – 4.3
-    const ringRadius = 7 + pulse * 1.5; // 5.5 – 8.5
-    const ringAlpha = 0.18 + pulse * 0.08; // 0.10 – 0.26
-
-    // Outer ring
     ctx.beginPath();
-    ctx.arc(lastPt[0], lastPt[1], ringRadius, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(37, 99, 235, ${ringAlpha})`;
+    ctx.arc(lastPt[0], lastPt[1], 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = LINE_COLOR;
+    ctx.fill();
+    ctx.strokeStyle = "white";
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
-    // Inner dot
-    ctx.beginPath();
-    ctx.arc(lastPt[0], lastPt[1], dotRadius, 0, Math.PI * 2);
-    ctx.fillStyle = LINE_COLOR;
-    ctx.fill();
-
     // Time labels along bottom
     ctx.fillStyle = LABEL_COLOR;
-    ctx.font = "9px -apple-system, BlinkMacSystemFont, sans-serif";
+    ctx.font = "9px uppercase, sans-serif";
     ctx.textAlign = "center";
-    const timeLabels = ["24h ago", "18h", "12h", "6h", "Now"];
+    const timeLabels = ["24H AGO", "18H", "12H", "6H", "NOW"];
     for (let t = 0; t < timeLabels.length; t++) {
       const tx = chartLeft + (t / (timeLabels.length - 1)) * chartW;
-      ctx.fillText(timeLabels[t], tx, h - 4);
+      ctx.fillText(timeLabels[t], tx, h - 6);
     }
   }, []);
 
@@ -318,18 +302,20 @@ export default function PriceHistoryChart({
   }, [marketId, yesPrice, draw]);
 
   return (
-    <div className="rounded-xl bg-white border border-gray-100 mb-8 overflow-hidden">
-      <div className="flex items-center justify-between px-4 pt-3 pb-1">
-        <span className="text-xs font-semibold text-muted uppercase tracking-wider">
-          Price History
+    <div className="bg-white border border-stone-200 mb-8 overflow-hidden">
+      <div className="flex items-center justify-between px-4 pt-4 pb-2 border-b border-stone-50">
+        <span className="text-[10px] font-medium text-stone-500 uppercase tracking-widest">
+          Consensus History
         </span>
-        <span className="text-xs text-muted">24h</span>
+        <span className="text-[10px] font-bold text-[#0C4A6E]">LIVE</span>
       </div>
-      <canvas
-        ref={canvasRef}
-        className="w-full"
-        style={{ height: 180, display: "block" }}
-      />
+      <div className="p-2 bg-[#FAFAF9]/30">
+        <canvas
+          ref={canvasRef}
+          className="w-full"
+          style={{ height: 180, display: "block" }}
+        />
+      </div>
     </div>
   );
 }
