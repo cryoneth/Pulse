@@ -14,9 +14,12 @@
 body {
   background-color: #F3F4F6;
   color: #111827;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: 'Source Sans 3', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
+  /* Mobile fix: prevent horizontal scroll from carousel */
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 ::-webkit-scrollbar {
@@ -34,4 +37,21 @@ body {
 
 .animate-slide-up {
   animation: slide-up 0.3s ease-out;
+}
+
+@keyframes ticker {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-ticker {
+  animation: ticker 20s linear infinite;
+}
+
+.animate-ticker:hover {
+  animation-play-state: paused;
 }
