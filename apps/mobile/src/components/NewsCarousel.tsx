@@ -17,7 +17,7 @@ const newsData: NewsItem[] = [
   {
     id: "1",
     category: "Crypto",
-    image: "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=400&h=200&fit=crop",
+    image: "https://images.unsplash.com/photo-1621416848440-236914c7467e?w=800&q=80&auto=format&fit=crop",
     title: "Vitalik Buterin Claims Some L2s are 'Economically Useless'",
     author: "Sarah Chen",
     date: "Feb 6, 2026",
@@ -27,7 +27,7 @@ const newsData: NewsItem[] = [
   {
     id: "2",
     category: "Markets",
-    image: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&h=200&fit=crop",
+    image: "https://images.unsplash.com/photo-1611974710178-687a0c70f1fc?w=800&q=80&auto=format&fit=crop",
     title: "Silicon Valley's $700bn Question: Where is the AI ROI?",
     author: "Michael Zhang",
     date: "Feb 5, 2026",
@@ -37,7 +37,7 @@ const newsData: NewsItem[] = [
   {
     id: "3",
     category: "Markets",
-    image: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=400&h=200&fit=crop",
+    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&q=80&auto=format&fit=crop",
     title: "Are Meta and Google Ads Truly Recession-Proof?",
     author: "Emma Watson",
     date: "Feb 4, 2026",
@@ -47,7 +47,7 @@ const newsData: NewsItem[] = [
   {
     id: "4",
     category: "Politics",
-    image: "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=400&h=200&fit=crop",
+    image: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800&q=80&auto=format&fit=crop",
     title: "AI Is Not the Only Threat Menacing Big Tech",
     author: "James Park",
     date: "Feb 3, 2026",
@@ -57,7 +57,7 @@ const newsData: NewsItem[] = [
   {
     id: "5",
     category: "Entertainment",
-    image: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=200&fit=crop",
+    image: "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=800&q=80&auto=format&fit=crop",
     title: "NASA Seeks Industry Input for SOLAR X-Ray Irradiance Sensors",
     author: "David Kim",
     date: "Feb 2, 2026",
@@ -67,12 +67,32 @@ const newsData: NewsItem[] = [
   {
     id: "6",
     category: "Crypto",
-    image: "https://images.unsplash.com/photo-1622630998477-20aa696ecb05?w=400&h=200&fit=crop",
+    image: "https://images.unsplash.com/photo-1639322537228-f710d846310a?w=800&q=80&auto=format&fit=crop",
     title: "Stablecoin Dominance: Is USDC Finally Flipping USDT?",
     author: "Alex Rivera",
     date: "Feb 1, 2026",
     excerpt: "Compliance-first stablecoins see massive growth as regulatory clarity emerges in major financial hubs.",
     fullText: "New data shows USDC market share in Europe and Singapore has reached an all-time high, narrowing the gap with Tether. As the MiCA regulation takes full effect in the EU, the 'compliance-first' approach of Circle appears to be winning over institutional liquidity. Prediction markets are currently pricing a 35% chance that USDC total supply will exceed USDT by year-end."
+  },
+  {
+    id: "7",
+    category: "Politics",
+    image: "https://images.unsplash.com/photo-1526628953301-3e589a6a8b74?w=800&q=80&auto=format&fit=crop",
+    title: "The Geopolitics of Semiconductors: TSMC's 2nm Gamble",
+    author: "Lin Wei",
+    date: "Feb 7, 2026",
+    excerpt: "As Taiwan prepares for next-gen chip production, global powers race to secure supply chain dominance.",
+    fullText: "TSMC is accelerating its 2nm production timeline, a move that is as much political as it is technical. With the world's dependence on high-end silicon reaching critical levels, the 'silicon shield' theory is being tested. Major economies are pouring billions into domestic foundries, but analysts question if anyone can truly replicate the efficiency of the Hsinchu science park."
+  },
+  {
+    id: "8",
+    category: "Entertainment",
+    image: "https://images.unsplash.com/photo-1614850523459-c2f4c699c52e?w=800&q=80&auto=format&fit=crop",
+    title: "Streaming Wars 2.0: The Return of the Bundle",
+    author: "Jordan Smith",
+    date: "Feb 7, 2026",
+    excerpt: "Fragmented markets lead to consumer fatigue, forcing rivals into unexpected alliances.",
+    fullText: "In a surprising pivot, major streaming rivals are re-bundling their services, effectively recreating the cable TV packages they once sought to destroy. Disney, Warner Bros, and Netflix have announced cross-platform subscriptions to reduce churn and combat the rising cost of content production. It's a survival move in a saturated market where attention is the scarcest resource."
   }
 ];
 
