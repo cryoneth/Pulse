@@ -17,7 +17,7 @@ const newsData: NewsItem[] = [
   {
     id: "1",
     category: "Crypto",
-    image: "https://images.unsplash.com/photo-1621416848440-236914c7467e?w=800&q=80&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&q=80&auto=format&fit=crop",
     title: "Vitalik Buterin Claims Some L2s are 'Economically Useless'",
     author: "Sarah Chen",
     date: "Feb 6, 2026",
@@ -27,7 +27,7 @@ const newsData: NewsItem[] = [
   {
     id: "2",
     category: "Markets",
-    image: "https://images.unsplash.com/photo-1611974710178-687a0c70f1fc?w=800&q=80&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&q=80&auto=format&fit=crop",
     title: "Silicon Valley's $700bn Question: Where is the AI ROI?",
     author: "Michael Zhang",
     date: "Feb 5, 2026",
