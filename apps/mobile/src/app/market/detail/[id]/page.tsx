@@ -1079,6 +1079,12 @@ export default function MarketDetailPage({
                   />
                 </button>
               </div>
+              
+              {isAutomatedMode && !belowMinimum && amountNum > 0 && amountNum < 10 && (
+                <p className="text-[10px] text-[#0C4A6E] font-medium bg-blue-50 p-2 border border-blue-100">
+                  Note: One-Click requires a $10 minimum. This trade will proceed using the standard manual flow.
+                </p>
+              )}
 
               {/* Test Mode Toggle */}
               <div className="flex items-center justify-between">
