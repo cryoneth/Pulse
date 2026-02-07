@@ -139,6 +139,7 @@ export function NewsCarousel() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [flippedCards, setFlippedCards] = useState<Set<number>>(new Set());
   const [isMobile, setIsMobile] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const deckRef = useRef<HTMLDivElement>(null);
 
   // Track screen size for responsive distance
@@ -158,6 +159,18 @@ export function NewsCarousel() {
   const prevCard = useCallback(() => {
     setCurrentIndex((prev) => (prev - 1 + newsData.length) % newsData.length);
   }, []);
+
+  // Auto-swipe functionality
+  useEffect(() => {
+    // Don't auto-swipe if any card is flipped (user is reading) or if manually paused
+    if (flippedCards.size > 0 || isPaused) return;
+
+    const timer = setTimeout(() => {
+      nextCard();
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [currentIndex, flippedCards.size, isPaused, nextCard]);
 
   const goToCard = useCallback((index: number) => {
     setCurrentIndex(index);
@@ -394,7 +407,16 @@ export function NewsCarousel() {
   };
 
   return (
-    <div className="relative overflow-visible">
+    <div 
+      className="relative overflow-visible"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      onTouchStart={() => setIsPaused(true)}
+      onTouchEnd={() => {
+        // Delay resuming auto-swipe after touch ends
+        setTimeout(() => setIsPaused(false), 1000);
+      }}
+    >
       {/* Carousel Container */}
       <div
         className="relative h-[460px] sm:h-[520px] md:h-[580px] mx-auto max-w-full overflow-visible"
@@ -416,45 +438,27 @@ export function NewsCarousel() {
             const isCurrent = index === currentIndex;
             const cat = categoryColors[news.category] || { border: "border-stone-300", text: "text-stone-700", bg: "bg-white" };
 
-                                        return (
-
-                                          <div
-
-                                            key={news.id}
-
-                                            className="absolute left-1/2 top-1/2 w-[260px] h-[400px] sm:w-[320px] sm:h-[460px] md:w-[400px] md:h-[500px]"
-
-                                            style={{
-
-                                              ...style,
-
-                                              transformStyle: "preserve-3d",
-
-                                              transition: "all 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
-
-                                              pointerEvents: "auto",
-
-                                              cursor: isCurrent ? "pointer" : "zoom-in",
-
-                                            }}
-
-                                            onClick={(e) => {
-
-                                              // Only handle flipping here if it's the current card
-
-                                              if (isCurrent) {
-
-                                                e.stopPropagation();
-
-                                                toggleFlip(index);
-
-                                              }
-
-                                              // Otherwise, the event bubbles up to handleMouseUp for navigation
-
-                                            }}
-
-                                          >                {/* Card Inner (handles flip) */}
+            return (
+              <div
+                key={news.id}
+                className="absolute left-1/2 top-1/2 w-[260px] h-[400px] sm:w-[320px] sm:h-[460px] md:w-[400px] md:h-[500px]"
+                style={{
+                  ...style,
+                  transformStyle: "preserve-3d",
+                  transition: "all 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
+                  pointerEvents: "auto",
+                  cursor: isCurrent ? "pointer" : "zoom-in",
+                }}
+                onClick={(e) => {
+                  // Only handle flipping here if it's the current card
+                  if (isCurrent) {
+                    e.stopPropagation();
+                    toggleFlip(index);
+                  }
+                  // Otherwise, the event bubbles up to handleMouseUp for navigation
+                }}
+              >
+                {/* Card Inner (handles flip) */}
                 <div
                   className="relative w-full h-full"
                   style={{
