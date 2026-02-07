@@ -19,7 +19,7 @@ const newsData: NewsItem[] = [
   {
     id: "1",
     category: "Crypto",
-    image: "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=800&q=80&auto=format&fit=crop",
+    image: "/carousel/vitalik.jpg",
     title: "Vitalik Buterin Claims Some L2s are 'Economically Useless'",
     author: "Sarah Chen",
     date: "Feb 6, 2026",
@@ -31,7 +31,7 @@ const newsData: NewsItem[] = [
   {
     id: "2",
     category: "Markets",
-    image: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&q=80&auto=format&fit=crop",
+    image: "/carousel/ai-roi.jpg",
     title: "Silicon Valley's $700bn Question: Where is the AI ROI?",
     author: "Michael Zhang",
     date: "Feb 5, 2026",
@@ -43,7 +43,7 @@ const newsData: NewsItem[] = [
   {
     id: "3",
     category: "Markets",
-    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&q=80&auto=format&fit=crop",
+    image: "/carousel/google-meta.jpg",
     title: "Are Meta and Google Ads Truly Recession-Proof?",
     author: "Emma Watson",
     date: "Feb 4, 2026",
@@ -79,7 +79,7 @@ const newsData: NewsItem[] = [
   {
     id: "6",
     category: "Crypto",
-    image: "https://images.unsplash.com/photo-1639322537228-f710d846310a?w=800&q=80&auto=format&fit=crop",
+    image: "/carousel/usdc-usdt.jpg",
     title: "Stablecoin Dominance: Is USDC Finally Flipping USDT?",
     author: "Alex Rivera",
     date: "Feb 1, 2026",
@@ -91,7 +91,7 @@ const newsData: NewsItem[] = [
   {
     id: "7",
     category: "Politics",
-    image: "https://images.unsplash.com/photo-1526628953301-3e589a6a8b74?w=800&q=80&auto=format&fit=crop",
+    image: "/carousel/tsmc.jpg",
     title: "The Geopolitics of Semiconductors: TSMC's 2nm Gamble",
     author: "Lin Wei",
     date: "Feb 7, 2026",
@@ -103,7 +103,7 @@ const newsData: NewsItem[] = [
   {
     id: "8",
     category: "Entertainment",
-    image: "https://images.unsplash.com/photo-1614850523459-c2f4c699c52e?w=800&q=80&auto=format&fit=crop",
+    image: "/carousel/streaming.jpg",
     title: "Streaming Wars 2.0: The Return of the Bundle",
     author: "Jordan Smith",
     date: "Feb 7, 2026",
@@ -115,7 +115,7 @@ const newsData: NewsItem[] = [
   {
     id: "9",
     category: "Markets",
-    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&q=80&auto=format&fit=crop",
+    image: "/carousel/venture-era.jpg",
     title: "Tech Consolidation: The End of the Venture Era?",
     author: "Elena Rossi",
     date: "Feb 8, 2026",
