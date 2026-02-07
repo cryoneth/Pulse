@@ -221,7 +221,13 @@ export default function PortfolioPage() {
     return (
       <div className="min-h-screen bg-[#FAFAF9]">
         <div className="bg-white border-b border-stone-200 px-4 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-serif font-semibold text-stone-900">Portfolio</h1>
+          <Link href="/">
+            <div className="border-2 border-[#0C4A6E] px-2 py-0.5">
+              <h1 className="text-xl font-serif font-semibold text-[#0C4A6E] tracking-tight">
+                Pulse
+              </h1>
+            </div>
+          </Link>
           <WalletButton />
         </div>
         <div className="flex flex-col items-center justify-center px-4 py-20">
@@ -244,7 +250,13 @@ export default function PortfolioPage() {
     <div className="min-h-screen bg-[#FAFAF9] pb-24">
       {/* Header */}
       <div className="bg-white border-b border-stone-200 px-4 py-4 flex justify-between items-center">
-        <h1 className="text-xl font-serif font-semibold text-stone-900">Portfolio</h1>
+        <Link href="/">
+          <div className="border-2 border-[#0C4A6E] px-2 py-0.5">
+            <h1 className="text-xl font-serif font-semibold text-[#0C4A6E] tracking-tight">
+              Pulse
+            </h1>
+          </div>
+        </Link>
         <WalletButton />
       </div>
 

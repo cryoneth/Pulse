@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useState } from "react";
+import Link from "next/link";
 import { mockMarkets } from "@/lib/mock-markets";
 import { MarketCard } from "@/components/MarketCard";
 import { WalletButton } from "@/components/WalletButton";
@@ -27,7 +28,13 @@ function MarketListContent() {
     <div className="min-h-screen bg-[#FAFAF9] text-stone-900 font-sans">
       {/* Header */}
       <div className="sticky top-0 z-20 bg-white border-b border-stone-200 px-4 py-3 flex justify-between items-center">
-        <h1 className="text-xl font-serif font-semibold text-[#0C4A6E]">Markets</h1>
+        <Link href="/">
+          <div className="border-2 border-[#0C4A6E] px-2 py-0.5">
+            <h1 className="text-xl font-serif font-semibold text-[#0C4A6E] tracking-tight">
+              Pulse
+            </h1>
+          </div>
+        </Link>
         <WalletButton />
       </div>
 

@@ -807,9 +807,15 @@ function MarketDetailContent({
         >
           &larr; Back
         </Link>
-        <span className="font-medium text-sm truncate text-stone-400 flex-1">
-          Market Detail
-        </span>
+        <div className="flex-1 flex justify-center">
+          <Link href="/">
+            <div className="border-2 border-[#0C4A6E] px-2 py-0.5">
+              <h1 className="text-xl font-serif font-semibold text-[#0C4A6E] tracking-tight">
+                Pulse
+              </h1>
+            </div>
+          </Link>
+        </div>
         <WalletButton />
       </nav>
 

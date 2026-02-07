@@ -50,9 +50,11 @@ export default function Home() {
     <div className="min-h-screen bg-[#FAFAF9] text-stone-900 font-sans">
       {/* Navbar / Header - Clean, editorial */}
       <nav className="sticky top-0 z-20 bg-white border-b border-stone-200 px-4 py-3 flex justify-between items-center">
-        <h1 className="text-xl font-serif font-semibold text-[#0C4A6E]">
-          Pulse
-        </h1>
+        <div className="border-2 border-[#0C4A6E] px-2 py-0.5">
+          <h1 className="text-xl font-serif font-semibold text-[#0C4A6E] tracking-tight">
+            Pulse
+          </h1>
+        </div>
         <WalletButton />
       </nav>
 
