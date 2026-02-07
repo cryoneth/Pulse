@@ -13,8 +13,7 @@ export function MarketCard({ market }: { market: Market }) {
   const cat = categoryConfig[market.category] || categoryConfig.politics;
 
   return (
-    <Link
-      href={`/market/detail/${market.id}`}
+    <div
       className="block bg-white border border-stone-200 p-6 mb-4 hover:border-stone-300 transition-colors duration-200"
     >
       {/* Category Badge + Volume */}
@@ -30,28 +29,36 @@ export function MarketCard({ market }: { market: Market }) {
       </div>
 
       {/* Question - Editorial serif headline */}
-      <h3 className="text-lg font-serif font-semibold text-stone-900 leading-snug mb-5 line-clamp-2">
-        {market.question}
-      </h3>
+      <Link href={`/market/detail/${market.id}`}>
+        <h3 className="text-lg font-serif font-semibold text-stone-900 leading-snug mb-5 line-clamp-2 hover:text-[#0C4A6E] transition-colors">
+          {market.question}
+        </h3>
+      </Link>
 
       {/* Odds Buttons - Outlined style, equal weight */}
       <div className="flex gap-3">
         {/* YES */}
-        <button className="flex-1 py-3 bg-white border-2 border-green-600 text-green-600 font-medium hover:bg-green-50 transition-colors duration-200">
+        <Link 
+          href={`/market/detail/${market.id}?side=YES`}
+          className="flex-1 py-3 bg-white border-2 border-green-600 text-green-600 font-medium hover:bg-green-50 transition-colors duration-200 flex flex-col items-center justify-center"
+        >
           <span className="text-lg tabular-nums">{market.yesPrice}¢</span>
           <span className="block text-[10px] font-medium uppercase tracking-wide mt-0.5">
             Yes
           </span>
-        </button>
+        </Link>
 
         {/* NO */}
-        <button className="flex-1 py-3 bg-white border-2 border-red-600 text-red-600 font-medium hover:bg-red-50 transition-colors duration-200">
+        <Link 
+          href={`/market/detail/${market.id}?side=NO`}
+          className="flex-1 py-3 bg-white border-2 border-red-600 text-red-600 font-medium hover:bg-red-50 transition-colors duration-200 flex flex-col items-center justify-center"
+        >
           <span className="text-lg tabular-nums">{market.noPrice}¢</span>
           <span className="block text-[10px] font-medium uppercase tracking-wide mt-0.5">
             No
           </span>
-        </button>
+        </Link>
       </div>
-    </Link>
+    </div>
   );
 }

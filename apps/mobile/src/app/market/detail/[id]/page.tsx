@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useEffect, use } from "react";
+import { useState, useCallback, useEffect, use, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { getMarketById } from "@/lib/mock-markets";
 import Link from "next/link";
 import {
@@ -131,7 +132,29 @@ export default function MarketDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#FAFAF9]">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-stone-200 border-t-[#0C4A6E] rounded-full animate-spin mx-auto mb-3" />
+          <p className="text-sm text-stone-500">Loading market...</p>
+        </div>
+      </div>
+    }>
+      <MarketDetailContent params={params} />
+    </Suspense>
+  );
+}
+
+function MarketDetailContent({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = use(params);
+  const searchParams = useSearchParams();
+  const initialSide = (searchParams.get("side")?.toUpperCase() as "YES" | "NO") || "YES";
+  
   const isContract = id.startsWith("0x");
   const mockMarket = !isContract ? getMarketById(id) : null;
 
@@ -156,7 +179,7 @@ export default function MarketDetailPage({
     }
   }, [walletClient, switchChainAsync, wagmiConfig]);
 
-  const [side, setSide] = useState<"YES" | "NO">("YES");
+  const [side, setSide] = useState<"YES" | "NO">(initialSide);
   const [amount, setAmount] = useState("");
   const [sourceIndex, setSourceIndex] = useState(0);
   const [flowState, setFlowState] = useState<FlowState>("input");
