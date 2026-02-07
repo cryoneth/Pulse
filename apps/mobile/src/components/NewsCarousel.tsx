@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import Link from "next/link";
 
 interface NewsItem {
   id: string;
@@ -250,6 +251,8 @@ export function NewsCarousel() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft") prevCard();
       if (e.key === "ArrowRight") nextCard();
+      if (e.key === "ArrowUp") toggleFlip(currentIndex);
+      if (e.key === "ArrowDown") toggleFlip(currentIndex);
       if (e.key === " ") {
         e.preventDefault();
         toggleFlip(currentIndex);
@@ -267,19 +270,26 @@ export function NewsCarousel() {
     let touchStartX = 0;
     let touchStartY = 0;
     let isDraggingHorizontal = false;
+    let isDraggingVertical = false;
 
     const handleTouchStart = (e: TouchEvent) => {
       touchStartX = e.touches[0].clientX;
       touchStartY = e.touches[0].clientY;
       isDraggingHorizontal = false;
+      isDraggingVertical = false;
     };
 
     const handleTouchMove = (e: TouchEvent) => {
       const diffX = e.touches[0].clientX - touchStartX;
       const diffY = e.touches[0].clientY - touchStartY;
 
+      // Vertical swipe detection
+      if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > 10) {
+        e.preventDefault();
+        isDraggingVertical = true;
+      }
       // If horizontal movement is greater, prevent default to stop page scroll
-      if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 10) {
+      else if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 10) {
         e.preventDefault();
         isDraggingHorizontal = true;
       }
@@ -289,7 +299,13 @@ export function NewsCarousel() {
       const diffX = e.changedTouches[0].clientX - touchStartX;
       const diffY = e.changedTouches[0].clientY - touchStartY;
 
-      if (isDraggingHorizontal) {
+      if (isDraggingVertical) {
+        // Swipe up or down to flip
+        if (Math.abs(diffY) > 50) {
+          toggleFlip(currentIndex);
+        }
+      }
+      else if (isDraggingHorizontal) {
         // Swipe left (negative diff) = show next card
         if (diffX < -50) {
           nextCard();
@@ -311,6 +327,7 @@ export function NewsCarousel() {
         }
       }
       isDraggingHorizontal = false;
+      isDraggingVertical = false;
     };
 
     // Add listeners with passive: false for touch events
@@ -323,25 +340,32 @@ export function NewsCarousel() {
       deck.removeEventListener("touchmove", handleTouchMove);
       deck.removeEventListener("touchend", handleTouchEnd);
     };
-  }, [nextCard, prevCard]);
+  }, [nextCard, prevCard, toggleFlip, currentIndex]);
 
   // Mouse drag handling
   const mouseStartX = useRef(0);
+  const mouseStartY = useRef(0);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     mouseStartX.current = e.clientX;
+    mouseStartY.current = e.clientY;
   };
 
   const handleMouseUp = (e: React.MouseEvent) => {
-    const diff = e.clientX - mouseStartX.current;
+    const diffX = e.clientX - mouseStartX.current;
+    const diffY = e.clientY - mouseStartY.current;
     
-    // If it was a drag/swipe
-    if (Math.abs(diff) > 50) {
-      if (diff > 0) prevCard();
+    // Vertical drag/swipe
+    if (Math.abs(diffY) > 50 && Math.abs(diffY) > Math.abs(diffX)) {
+      toggleFlip(currentIndex);
+    }
+    // If it was a horizontal drag/swipe
+    else if (Math.abs(diffX) > 50) {
+      if (diffX > 0) prevCard();
       else nextCard();
     } 
     // If it was a simple click, check if it was on the left or right "zones"
-    else {
+    else if (Math.abs(diffX) < 10 && Math.abs(diffY) < 10) {
       const rect = deckRef.current?.getBoundingClientRect();
       if (rect) {
         const clickX = e.clientX - rect.left;
@@ -453,9 +477,7 @@ export function NewsCarousel() {
                   // Only handle flipping here if it's the current card
                   if (isCurrent) {
                     e.stopPropagation();
-                    toggleFlip(index);
                   }
-                  // Otherwise, the event bubbles up to handleMouseUp for navigation
                 }}
               >
                 {/* Card Inner (handles flip) */}
@@ -464,66 +486,75 @@ export function NewsCarousel() {
                   style={{
                     transformStyle: "preserve-3d",
                     transition: "transform 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
-                    transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)",
+                    transform: isFlipped ? "rotateX(180deg)" : "rotateX(0deg)",
                   }}
                 >
                   {/* Front Face */}
                   <div
-                    className="absolute inset-0 overflow-hidden bg-white border border-stone-200"
+                    className="absolute inset-0 overflow-hidden bg-white border border-stone-200 flex flex-col"
                     style={{
                       backfaceVisibility: "hidden",
                       boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
                     }}
                   >
                     <div className="p-5 sm:p-6 flex flex-col h-full">
-                      <span className={`self-start px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider border ${cat.border} ${cat.text} ${cat.bg}`}>
-                        {news.category}
-                      </span>
+                      <div className="flex justify-between items-start">
+                        <span className={`px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider border ${cat.border} ${cat.text} ${cat.bg}`}>
+                          {news.category}
+                        </span>
+                        {isCurrent && (
+                          <div className="flex flex-col items-end animate-bounce">
+                            <span className="text-[10px] font-bold text-[#0C4A6E]">↑ READ</span>
+                          </div>
+                        )}
+                      </div>
+                      
                       <img
                         src={news.image}
                         alt={news.title}
-                        className="w-full h-40 sm:h-44 md:h-48 object-cover mt-4"
+                        className="w-full h-36 sm:h-44 md:h-48 object-cover mt-3"
                       />
                       <h3
-                        className="text-xl sm:text-2xl font-serif font-semibold text-stone-900 mt-4 leading-tight line-clamp-2"
+                        className="text-lg sm:text-xl font-serif font-semibold text-stone-900 mt-3 leading-tight"
                       >
                         {news.title}
                       </h3>
-                      <div className="flex items-center gap-2 mt-3 text-sm text-stone-500">
-                        <span className="font-medium">{news.author}</span>
-                        <span>•</span>
-                        <span>{news.date}</span>
-                      </div>
-                      <p className="text-sm text-stone-600 mt-3 line-clamp-2 flex-1 leading-relaxed">
+                      
+                      <p className="text-[11px] sm:text-xs text-stone-600 mt-2 line-clamp-1 sm:line-clamp-2 flex-1 leading-relaxed">
                         {news.excerpt}
                       </p>
-                      <span className="text-xs text-[#0C4A6E] font-semibold mt-3">
-                        Click to read more →
+                      
+                      <span className="text-[10px] text-[#0C4A6E] font-semibold mt-1">
+                        Swipe up to read more →
                       </span>
                     </div>
                   </div>
 
                   {/* Back Face */}
                   <div
-                    className="absolute inset-0 overflow-hidden bg-white border border-stone-200"
+                    className="absolute inset-0 overflow-hidden bg-white border border-stone-200 flex flex-col"
                     style={{
                       backfaceVisibility: "hidden",
-                      transform: "rotateY(180deg)",
+                      transform: "rotateX(180deg)",
                       boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
                     }}
                   >
                     <div className="p-5 sm:p-6 flex flex-col h-full bg-[#FAFAF9]/50">
-                      <div className="flex items-center gap-2 mb-4">
-                        <span className={`px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider border ${cat.border} ${cat.text} bg-white`}>
-                          Full Story
-                        </span>
-                        <span className="text-[10px] font-medium text-stone-400 uppercase tracking-widest">
-                          {news.source}
-                        </span>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider border ${cat.border} ${cat.text} bg-white`}>
+                            Full Story
+                          </span>
+                        </div>
+                        {isCurrent && (
+                          <div className="flex flex-col items-end animate-bounce">
+                            <span className="text-[10px] font-bold text-[#0C4A6E]">↓ BACK</span>
+                          </div>
+                        )}
                       </div>
                       
                       <h3
-                        className="text-xl sm:text-2xl font-serif font-semibold text-stone-900 leading-tight mb-4 border-b border-stone-200 pb-4"
+                        className="text-base sm:text-lg font-serif font-semibold text-stone-900 leading-tight mb-2 border-b border-stone-200 pb-2"
                       >
                         {news.title}
                       </h3>
@@ -571,8 +602,8 @@ export function NewsCarousel() {
       </div>
 
       {/* Hint text */}
-      <p className="text-center text-xs text-stone-400 mt-3">
-        Swipe, drag, or use arrow keys to navigate
+      <p className="text-center text-[10px] font-medium text-stone-400 mt-4 uppercase tracking-widest">
+        Swipe left/right to browse • Swipe up/down to read more
       </p>
     </div>
   );

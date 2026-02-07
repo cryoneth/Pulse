@@ -6,6 +6,7 @@ import Link from "next/link";
 import { WalletButton } from "@/components/WalletButton";
 import { PriceTicker } from "@/components/PriceTicker";
 import { NewsCarousel } from "@/components/NewsCarousel";
+import { NewsSidebar } from "@/components/NewsSidebar";
 import { useState, useRef, useEffect } from "react";
 import { Transaction } from "@/lib/types";
 import { useAccount } from "wagmi";
@@ -61,14 +62,25 @@ export default function Home() {
       {/* Price Ticker */}
       <PriceTicker />
 
-      <main className="px-4 py-6 pb-24">
-        {/* News Carousel */}
-        <section className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-serif font-semibold text-stone-900">Latest News</h2>
-            <span className="text-xs font-medium text-stone-400">Swipe or tap</span>
+      <main className="px-4 py-6 pb-24 max-w-7xl mx-auto">
+        {/* News & Insights Section */}
+        <section className="mb-12">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-serif font-semibold text-stone-900">Market Intelligence</h2>
+            <span className="text-xs font-medium text-stone-400 uppercase tracking-widest">Dispatch 02.07.26</span>
           </div>
-          <NewsCarousel />
+          
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-8 items-start">
+            {/* Carousel (Left on Desktop) */}
+            <div className="min-w-0"> {/* min-w-0 prevents grid blowout with absolute children */}
+              <NewsCarousel />
+            </div>
+
+            {/* Sidebar (Right on Desktop) */}
+            <div className="lg:h-[500px] xl:h-[580px]">
+              <NewsSidebar />
+            </div>
+          </div>
         </section>
 
         {/* Action Tabs - Content Switchers (Sticky) */}
