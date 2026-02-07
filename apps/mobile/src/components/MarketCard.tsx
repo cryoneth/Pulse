@@ -20,7 +20,7 @@ export function MarketCard({ market }: { market: Market }) {
       {/* Category Badge + Volume */}
       <div className="flex items-center justify-between mb-4">
         <span
-          className={`text-[10px] font-medium uppercase tracking-wider px-2.5 py-1 rounded-full bg-white border ${cat.border} ${cat.text}`}
+          className={`text-[10px] font-medium uppercase tracking-wider px-2.5 py-1 bg-white border ${cat.border} ${cat.text}`}
         >
           {cat.label}
         </span>
