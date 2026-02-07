@@ -93,6 +93,16 @@ const newsData: NewsItem[] = [
     date: "Feb 7, 2026",
     excerpt: "Fragmented markets lead to consumer fatigue, forcing rivals into unexpected alliances.",
     fullText: "In a surprising pivot, major streaming rivals are re-bundling their services, effectively recreating the cable TV packages they once sought to destroy. Disney, Warner Bros, and Netflix have announced cross-platform subscriptions to reduce churn and combat the rising cost of content production. It's a survival move in a saturated market where attention is the scarcest resource."
+  },
+  {
+    id: "9",
+    category: "Markets",
+    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&q=80&auto=format&fit=crop",
+    title: "Tech Consolidation: The End of the Venture Era?",
+    author: "Elena Rossi",
+    date: "Feb 8, 2026",
+    excerpt: "As interest rates stabilize, the focus shifts from growth-at-all-costs to sustainable unit economics.",
+    fullText: "The venture capital landscape is undergoing a structural shift. The era of blitzscaling fueled by cheap capital has been replaced by a rigorous focus on profitability. Large incumbents are acquiring distressed startups at a record pace, leading to a massive wave of market consolidation. Prediction markets are seeing increased volume on merger approval odds as antitrust regulators step up their game."
   }
 ];
 

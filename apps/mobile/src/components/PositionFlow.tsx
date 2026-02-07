@@ -46,6 +46,8 @@ export function PositionFlow({
   if (!visible) return null;
 
   const isExecuting = flowState === "executing" || flowState === "verifying";
+  // The assurance message should only appear if at least one transaction has been signed (has a hash)
+  const hasStarted = steps.some(s => s.txHash || s.status === 'complete');
 
   return (
     <>
@@ -73,18 +75,24 @@ export function PositionFlow({
               ? "Verifying Position..."
               : "Confirm Position"}
           </h2>
-          {!isExecuting && (
-            <button
-              onClick={onClose}
-              className="text-stone-400 hover:text-stone-600 text-xl font-bold transition-colors"
-            >
-              &times;
-            </button>
-          )}
+          <button
+            onClick={onClose}
+            className="text-stone-400 hover:text-stone-600 text-xl font-bold transition-colors p-2 -mr-2"
+          >
+            &times;
+          </button>
         </div>
 
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto px-5 min-h-0">
+          {isExecuting && hasStarted && (
+            <div className="mb-6 p-4 bg-[#0C4A6E] border border-[#0C4A6E]">
+              <p className="text-xs text-white font-serif italic text-center leading-relaxed">
+                "Transaction signed. The chain is now processing your request. You may safely close this window; status will update in your Portfolio."
+              </p>
+            </div>
+          )}
+          
           {/* Quote summary — shown in confirming/executing */}
           {(flowState === "confirming" || flowState === "executing" || flowState === "verifying") && (
             <div className="bg-stone-50 border border-stone-200 p-4 mb-5">

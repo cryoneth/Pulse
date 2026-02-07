@@ -6,12 +6,31 @@ import Link from "next/link";
 import { WalletButton } from "@/components/WalletButton";
 import { PriceTicker } from "@/components/PriceTicker";
 import { NewsCarousel } from "@/components/NewsCarousel";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { Transaction } from "@/lib/types";
+import { useAccount } from "wagmi";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<"markets" | "portfolio">("markets");
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const { address } = useAccount();
   const trending = mockMarkets.slice(0, 3);
   const marketsRef = useRef<HTMLDivElement>(null);
+
+  // Load real transactions
+  useEffect(() => {
+    if (!address) return;
+    const loadTxns = () => {
+      const key = `pulse_txns_${address}`;
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        setTransactions(JSON.parse(saved));
+      }
+    };
+    loadTxns();
+    window.addEventListener("storage", loadTxns);
+    return () => window.removeEventListener("storage", loadTxns);
+  }, [address]);
 
   const scrollToMarkets = () => {
     setActiveTab("markets");
@@ -157,29 +176,41 @@ export default function Home() {
                 ))}
               </div>
 
-              {/* Added: Recent Activity for more height */}
+              {/* Real Recent Activity */}
               <div className="space-y-3">
                 <p className="text-[10px] font-medium text-stone-400 uppercase tracking-widest px-1">Recent Activity</p>
-                <div className="bg-white border border-stone-200 p-4 flex justify-between items-center opacity-60">
-                   <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-green-50 flex items-center justify-center text-green-600 text-xs font-bold">IN</div>
-                      <div>
-                        <p className="text-xs font-semibold text-stone-900">Bought YES Shares</p>
-                        <p className="text-[10px] text-stone-400">2 hours ago</p>
-                      </div>
-                   </div>
-                   <p className="text-xs font-semibold text-stone-900">-$24.50</p>
-                </div>
-                <div className="bg-white border border-stone-200 p-4 flex justify-between items-center opacity-60">
-                   <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-blue-50 flex items-center justify-center text-[#0C4A6E] text-xs font-bold">TX</div>
-                      <div>
-                        <p className="text-xs font-semibold text-stone-900">Wallet Funded</p>
-                        <p className="text-[10px] text-stone-400">Yesterday</p>
-                      </div>
-                   </div>
-                   <p className="text-xs font-semibold text-stone-900">+$100.00</p>
-                </div>
+                {transactions.length === 0 ? (
+                  <p className="text-xs text-stone-400 italic px-1">No recent transactions</p>
+                ) : (
+                  transactions.slice(0, 3).map((tx, idx) => (
+                    <div key={idx} className={`bg-white border border-stone-200 p-4 flex justify-between items-center ${tx.status === 'pending' ? 'animate-pulse border-[#0C4A6E]' : ''}`}>
+                       <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 flex items-center justify-center text-xs font-bold ${
+                            tx.status === 'pending' ? 'bg-stone-100 text-stone-400' :
+                            tx.type === 'buy' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-[#0C4A6E]'
+                          }`}>
+                            {tx.status === 'pending' ? '...' : tx.type === 'buy' ? 'IN' : 'TX'}
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold text-stone-900 capitalize">
+                              {tx.status === 'pending' ? 'Pending ' : ''}{tx.type} {tx.side || ''}
+                            </p>
+                            <p className="text-[10px] text-stone-400">
+                              {new Date(tx.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
+                       </div>
+                       <div className="text-right">
+                         <p className="text-xs font-semibold text-stone-900 tabular-nums">
+                           {tx.type === 'buy' ? '-' : '+'}${tx.amount}
+                         </p>
+                         {tx.status === 'pending' && (
+                           <p className="text-[10px] text-[#0C4A6E] font-medium animate-pulse">Processing...</p>
+                         )}
+                       </div>
+                    </div>
+                  ))
+                )}
               </div>
             </section>
           )}

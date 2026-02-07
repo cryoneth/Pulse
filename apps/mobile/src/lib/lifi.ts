@@ -1,9 +1,12 @@
 import {
   createConfig,
   EVM,
+  getContractCallsQuote,
   executeRoute,
+  convertQuoteToRoute,
 } from "@lifi/sdk";
 import type { RouteExtended } from "@lifi/sdk";
+import type { ContractCallsQuoteRequest } from "@lifi/types";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Route = any;
@@ -91,8 +94,6 @@ export const ERC20_APPROVE_ABI = [
 export const BASE_USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 export const BASE_CHAIN_ID = 8453;
 
-// Chain configs for public client creation
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const CHAIN_MAP: Record<number, { chain: any }> = {
   8453: { chain: base },
   137: { chain: polygon },
@@ -103,7 +104,6 @@ const CHAIN_MAP: Record<number, { chain: any }> = {
   56: { chain: bsc },
 };
 
-// Source chain/token options (exported for UI and scanning)
 export interface SourceOption {
   label: string;
   chainId: number;
@@ -161,15 +161,22 @@ export interface PositionStep {
 export interface QuoteParams {
   marketAddress: Address;
   side: "YES" | "NO";
-  amountUSDC: string; // human-readable e.g. "2.00"
+  amountUSDC: string;
   recipient: Address;
   fromChainId: number;
   fromTokenAddress: Address;
-  fromDecimals?: number; // decimals for source token (default 6 for USDC)
+  fromDecimals?: number;
+  preferAutomated?: boolean;
+}
+
+interface SourceWithBalance {
+  source: SourceOption;
+  index: number;
+  balance: number;
+  balanceRaw: bigint;
 }
 
 export async function fetchQuote(params: QuoteParams): Promise<Route> {
-  // Check if source is already USDC on Base (no swap/bridge needed)
   const isSameToken =
     params.fromChainId === BASE_CHAIN_ID &&
     params.fromTokenAddress.toLowerCase() === BASE_USDC.toLowerCase();
@@ -177,7 +184,6 @@ export async function fetchQuote(params: QuoteParams): Promise<Route> {
   const isRealContract =
     params.marketAddress !== ("0x0000000000000000000000000000000000000001" as Address);
 
-  // Special case: USDC on Base with real contract
   if (isSameToken && isRealContract) {
     return {
       steps: [],
@@ -191,17 +197,50 @@ export async function fetchQuote(params: QuoteParams): Promise<Route> {
     };
   }
 
-  // Same token without real contract (for testing)
-  if (isSameToken) {
-    return { steps: [], id: "same-chain-same-token" };
-  }
+  if (isSameToken) return { steps: [], id: "same-chain-same-token" };
 
-  // Get a standard route to USDC on Base
   const { getRoutes } = await import("@lifi/sdk");
   const decimals = params.fromDecimals ?? 6;
-  const fromAmountRaw = BigInt(
-    Math.round(parseFloat(params.amountUSDC) * 10 ** decimals)
-  ).toString();
+  const fromAmountRaw = BigInt(Math.round(parseFloat(params.amountUSDC) * 10 ** decimals)).toString();
+  const toAmountRaw = BigInt(Math.round(parseFloat(params.amountUSDC) * 1e6)).toString();
+
+  if (params.preferAutomated && isRealContract && parseFloat(params.amountUSDC) >= 10) {
+    try {
+      const callData = encodeFunctionData({
+        abi: BUY_FOR_ABI,
+        functionName: "buyFor",
+        args: [BigInt(toAmountRaw), params.side === "YES", params.recipient],
+      });
+
+      const request: any = {
+        fromChain: params.fromChainId,
+        fromToken: params.fromTokenAddress,
+        fromAddress: params.recipient,
+        toChain: BASE_CHAIN_ID,
+        toToken: BASE_USDC,
+        toAmount: toAmountRaw,
+        contractCalls: [{
+          fromAmount: toAmountRaw,
+          fromTokenAddress: BASE_USDC,
+          toContractAddress: params.marketAddress,
+          toContractCallData: callData,
+          toContractGasLimit: "350000",
+        }],
+      };
+
+      const quote = await getContractCallsQuote(request);
+      const route = convertQuoteToRoute(quote) as any;
+      
+      if ((quote as any).contractCalls && route.steps[0]) {
+        (route.steps[0] as any).contractCalls = (quote as any).contractCalls;
+      }
+      
+      route._isAutomated = true;
+      return route;
+    } catch (e) {
+      console.warn("Automated route failed:", e);
+    }
+  }
 
   const result = await getRoutes({
     fromChainId: params.fromChainId,
@@ -211,37 +250,31 @@ export async function fetchQuote(params: QuoteParams): Promise<Route> {
     toChainId: BASE_CHAIN_ID,
     toTokenAddress: BASE_USDC,
     toAddress: params.recipient,
-    options: {
-      slippage: 0.03,
-    },
   });
 
   if (!result.routes || result.routes.length === 0) {
     throw new Error("No routes found for this position");
   }
 
-      const route = result.routes[0] as any;
-      
-      // Attach custom metadata for manual execution afterward
-      if (isRealContract) {
-        route._marketParams = {
-          marketAddress: params.marketAddress,
-          side: params.side,
-          amountUSDC: params.amountUSDC,
-          recipient: params.recipient,
-        };
-      }
-  
-      return route;}
+  const route = result.routes[0] as any;
+  if (isRealContract) {
+    route._marketParams = {
+      marketAddress: params.marketAddress,
+      side: params.side,
+      amountUSDC: params.amountUSDC,
+      recipient: params.recipient,
+    };
+  }
+
+  return route;
+}
 
 export type StepCallback = (steps: PositionStep[]) => void;
 
-/** Check if a route is a direct USDC on Base route (no LI.FI needed) */
 export function isDirectRoute(route: Route): boolean {
   return route.id === "direct-base-usdc";
 }
 
-/** Get direct route params if applicable */
 export function getDirectRouteParams(route: Route): {
   marketAddress: Address;
   side: "YES" | "NO";
@@ -257,7 +290,6 @@ export function getDirectRouteParams(route: Route): {
 export function mapRouteToSteps(route: Route): PositionStep[] {
   const steps: PositionStep[] = [];
 
-  // Direct USDC on Base route - just approve and buy
   if (route.id === "direct-base-usdc") {
     steps.push({ label: "Approving USDC", status: "pending" });
     steps.push({ label: "Placing position", status: "pending" });
@@ -265,29 +297,19 @@ export function mapRouteToSteps(route: Route): PositionStep[] {
   }
 
   const lifiSteps = route.steps || [];
-
   for (const step of lifiSteps) {
-    const action = step.action;
-    const isCrossChain =
-      action && action.fromChainId !== action.toChainId;
-    if (isCrossChain) {
-      steps.push({ label: "Swap & Bridge to Base", status: "pending" });
-    } else {
-      steps.push({ label: "Swapping tokens", status: "pending" });
-    }
+    const isCrossChain = step.action && step.action.fromChainId !== step.action.toChainId;
+    steps.push({ label: isCrossChain ? "Swap & Bridge to Base" : "Swapping tokens", status: "pending" });
   }
 
-  // If there are market params, always add the contract call steps at the end
-  if (route._marketParams) {
+  if (route._isAutomated) {
+    steps[steps.length - 1].label += " + Automatic Buy";
+  } else if (route._marketParams) {
     steps.push({ label: "Approving USDC on Base", status: "pending" });
     steps.push({ label: "Placing position", status: "pending" });
   }
 
-  // If same-chain, ensure at least approval + position
-  if (steps.length === 0) {
-    steps.push({ label: "Done", status: "complete" });
-  }
-
+  if (steps.length === 0) steps.push({ label: "Done", status: "complete" });
   return steps;
 }
 
@@ -296,7 +318,6 @@ export async function executePosition(
   onStep: StepCallback,
   onComplete: (txHash?: string) => void,
   onError: (error: string, recoverable: boolean) => void,
-  // Helper to call market contract (since we can't use wagmi hooks here)
   callContract: (params: {
     marketAddress: Address;
     side: "YES" | "NO";
@@ -306,26 +327,19 @@ export async function executePosition(
   }) => Promise<string>
 ): Promise<void> {
   const steps = mapRouteToSteps(route);
-  let currentStepIndex = 0;
-
-  // Set first step active
   if (steps.length > 0) {
     steps[0].status = "active";
     onStep([...steps]);
   }
 
-  // Synthetic route (same-chain same-token) — nothing for LI.FI to execute
   if (route.id === "same-chain-same-token") {
-    for (const step of steps) {
-      step.status = "complete";
-    }
+    for (const step of steps) step.status = "complete";
     onStep([...steps]);
     onComplete(undefined);
     return;
   }
 
   try {
-    // 1. Execute LI.FI Swap/Bridge if needed
     if (route.steps && route.steps.length > 0) {
       await executeRoute(route, {
         updateRouteHook(updatedRoute: RouteExtended) {
@@ -334,7 +348,6 @@ export async function executePosition(
             const lifiStep = lifiSteps[i];
             const execution = lifiStep.execution;
             if (!execution) continue;
-
             const mappedIndex = i;
             if (execution.status === "DONE") {
               steps[mappedIndex].status = "complete";
@@ -355,8 +368,7 @@ export async function executePosition(
       });
     }
 
-    // 2. Execute Market Contract Call if parameters exist
-    if (route._marketParams) {
+    if (route._marketParams && !route._isAutomated) {
       const marketTxHash = await callContract({
         ...route._marketParams,
         onStepUpdate: (label, status, txHash) => {
@@ -370,69 +382,28 @@ export async function executePosition(
       });
       onComplete(marketTxHash);
     } else {
-      // Find the last tx hash from LI.FI
       const lastCompletedStep = [...steps].reverse().find((s) => s.txHash);
       onComplete(lastCompletedStep?.txHash);
     }
-
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unknown error occurred";
     onError(message, true);
   }
 }
 
-// ---------------------------------------------------------------------------
-// Feature 1: Auto-detect best funding source
-// ---------------------------------------------------------------------------
-
-const ERC20_BALANCE_ABI = [
-  {
-    inputs: [{ name: "account", type: "address" }],
-    name: "balanceOf",
-    outputs: [{ name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-] as const;
-
-interface SourceWithBalance {
-  source: SourceOption;
-  index: number;
-  balance: number; // human-readable balance
-  balanceRaw: bigint;
-}
-
-// Browser-compatible RPC URLs (matching wagmi config)
-const RPC_URLS: Record<number, string> = {
-  8453: "https://base.publicnode.com",
-  137: "https://polygon-bor-rpc.publicnode.com",
-  42161: "https://arbitrum-one-rpc.publicnode.com",
-  1: "https://ethereum-rpc.publicnode.com",
-  10: "https://optimism-rpc.publicnode.com",
-  43114: "https://avalanche-c-chain-rpc.publicnode.com",
-  56: "https://bsc-rpc.publicnode.com",
-};
-
 function getPublicClient(chainId: number) {
   const entry = CHAIN_MAP[chainId];
   const rpcUrl = RPC_URLS[chainId];
   if (!entry || !rpcUrl) return null;
-  return createPublicClient({
-    chain: entry.chain,
-    transport: http(rpcUrl),
-  });
+  return createPublicClient({ chain: entry.chain, transport: http(rpcUrl) });
 }
 
-/** Scan all SOURCE_OPTIONS in parallel and return those with non-zero balance. */
 async function scanBalances(owner: Address): Promise<SourceWithBalance[]> {
   const results = await Promise.allSettled(
     SOURCE_OPTIONS.map(async (src, idx) => {
       const client = getPublicClient(src.chainId);
       if (!client) return null;
-
-      const isNative =
-        src.tokenAddress === "0x0000000000000000000000000000000000000000";
-
+      const isNative = src.tokenAddress === "0x0000000000000000000000000000000000000000";
       let balanceRaw: bigint;
       if (isNative) {
         balanceRaw = await client.getBalance({ address: owner });
@@ -444,19 +415,13 @@ async function scanBalances(owner: Address): Promise<SourceWithBalance[]> {
           args: [owner],
         })) as bigint;
       }
-
       const balance = parseFloat(formatUnits(balanceRaw, src.decimals));
       if (balance <= 0) return null;
-
       return { source: src, index: idx, balance, balanceRaw } as SourceWithBalance;
     })
   );
-
   return results
-    .filter(
-      (r): r is PromiseFulfilledResult<SourceWithBalance | null> =>
-        r.status === "fulfilled" && r.value !== null
-    )
+    .filter((r): r is PromiseFulfilledResult<SourceWithBalance | null> => r.status === "fulfilled" && r.value !== null)
     .map((r) => r.value!);
 }
 
@@ -473,17 +438,12 @@ export async function findBestSource(
 ): Promise<BestSourceResult | null> {
   const withBalance = await scanBalances(owner);
   if (withBalance.length === 0) return null;
-
   const sufficient = withBalance.filter((s) => s.balance >= amountNeeded);
   const candidates = sufficient.length > 0 ? sufficient : withBalance;
-
   function score(s: SourceWithBalance): number {
     const isBase = s.source.chainId === BASE_CHAIN_ID;
     const isStable = ["USDC", "USDT", "DAI"].includes(s.source.tokenName);
-    const isBaseUsdc =
-      isBase &&
-      s.source.tokenAddress.toLowerCase() === BASE_USDC.toLowerCase();
-
+    const isBaseUsdc = isBase && s.source.tokenAddress.toLowerCase() === BASE_USDC.toLowerCase();
     if (isBaseUsdc) return 0;
     if (isBase && isStable) return 1;
     if (!isBase && s.source.tokenName === "USDC") return 2;
@@ -491,41 +451,22 @@ export async function findBestSource(
     if (isBase) return 4;
     return 5;
   }
-
   candidates.sort((a, b) => {
     const diff = score(a) - score(b);
     if (diff !== 0) return diff;
     return b.balance - a.balance;
   });
-
-  const best = candidates[0];
   return {
-    source: best.source,
-    index: best.index,
-    balance: best.balance,
+    source: candidates[0].source,
+    index: candidates[0].index,
+    balance: candidates[0].balance,
     allWithBalance: withBalance,
   };
 }
 
-// ---------------------------------------------------------------------------
-// Feature 2: Position verification — poll token balance after execution
-// ---------------------------------------------------------------------------
-
 export const MARKET_TOKEN_ABI = [
-  {
-    inputs: [],
-    name: "yesToken",
-    outputs: [{ internalType: "address", name: "", type: "address" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "noToken",
-    outputs: [{ internalType: "address", name: "", type: "address" }],
-    stateMutability: "view",
-    type: "function",
-  },
+  { inputs: [], name: "yesToken", outputs: [{ internalType: "address", name: "", type: "address" }], stateMutability: "view", type: "function" },
+  { inputs: [], name: "noToken", outputs: [{ internalType: "address", name: "", type: "address" }], stateMutability: "view", type: "function" },
 ] as const;
 
 export interface VerifiedPosition {
@@ -543,24 +484,14 @@ export async function verifyPosition(params: {
   maxAttempts?: number;
   intervalMs?: number;
 }): Promise<VerifiedPosition | null> {
-  const {
-    marketAddress,
-    side,
-    owner,
-    previousBalance = BigInt(0),
-    maxAttempts = 10,
-    intervalMs = 3000,
-  } = params;
-
+  const { marketAddress, side, owner, previousBalance = BigInt(0), maxAttempts = 10, intervalMs = 3000 } = params;
   const client = getPublicClient(BASE_CHAIN_ID);
   if (!client) return null;
-
   const tokenAddress = (await client.readContract({
     address: marketAddress,
     abi: MARKET_TOKEN_ABI,
     functionName: side === "YES" ? "yesToken" : "noToken",
   })) as Address;
-
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const balance = (await client.readContract({
       address: tokenAddress,
@@ -568,21 +499,25 @@ export async function verifyPosition(params: {
       functionName: "balanceOf",
       args: [owner],
     })) as bigint;
-
     if (balance > previousBalance) {
       const newShares = balance - previousBalance;
-      return {
-        shares: formatUnits(newShares, 6),
-        sharesRaw: newShares,
-        tokenAddress,
-        side,
-      };
+      return { shares: formatUnits(newShares, 6), sharesRaw: newShares, tokenAddress, side };
     }
-
-    if (attempt < maxAttempts - 1) {
-      await new Promise((r) => setTimeout(r, intervalMs));
-    }
+    if (attempt < maxAttempts - 1) await new Promise((r) => setTimeout(r, intervalMs));
   }
-
   return null;
 }
+
+const RPC_URLS: Record<number, string> = {
+  8453: "https://base.publicnode.com",
+  137: "https://polygon-bor-rpc.publicnode.com",
+  42161: "https://arbitrum-one-rpc.publicnode.com",
+  1: "https://ethereum-rpc.publicnode.com",
+  10: "https://optimism-rpc.publicnode.com",
+  43114: "https://avalanche-c-chain-rpc.publicnode.com",
+  56: "https://bsc-rpc.publicnode.com",
+};
+
+const ERC20_BALANCE_ABI = [
+  { inputs: [{ name: "account", type: "address" }], name: "balanceOf", outputs: [{ name: "", type: "uint256" }], stateMutability: "view", type: "function" },
+] as const;

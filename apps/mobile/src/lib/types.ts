@@ -26,3 +26,15 @@ export interface UserBalance {
   usdc: number;
   totalPositionValue: number;
 }
+
+export interface Transaction {
+  hash: string;
+  type: "buy" | "sell" | "approve" | "bridge";
+  side?: "YES" | "NO";
+  amount: string;
+  timestamp: number;
+  chainId: number;
+  status: "pending" | "complete" | "error";
+  marketQuestion?: string;
+  marketId?: string;
+}

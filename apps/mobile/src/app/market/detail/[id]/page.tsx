@@ -91,28 +91,39 @@ type FlowState =
   | "success"
   | "error";
 
-// Helper to save transaction to localStorage for portfolio history
-function saveTransaction(
+// Helper to save or update transaction in localStorage
+function updateTransaction(
   address: string,
   txHash: string,
-  type: "buy" | "sell" | "approve",
-  side: "YES" | "NO",
-  amount: string,
-  chainId: number = BASE_CHAIN_ID
+  data: {
+    type: "buy" | "sell" | "approve" | "bridge";
+    side?: "YES" | "NO";
+    amount: string;
+    chainId?: number;
+    status: "pending" | "complete" | "error";
+    marketQuestion?: string;
+    marketId?: string;
+  }
 ) {
   const key = `pulse_txns_${address}`;
   const existing = localStorage.getItem(key);
-  const txns = existing ? JSON.parse(existing) : [];
-  txns.unshift({
-    hash: txHash,
-    type,
-    side,
-    amount,
-    timestamp: Date.now(),
-    chainId,
-  });
-  // Keep only last 50 transactions
+  const txns: any[] = existing ? JSON.parse(existing) : [];
+  
+  const index = txns.findIndex(t => t.hash === txHash);
+  if (index !== -1) {
+    txns[index] = { ...txns[index], ...data, timestamp: txns[index].timestamp || Date.now() };
+  } else {
+    txns.unshift({
+      hash: txHash,
+      ...data,
+      timestamp: Date.now(),
+      chainId: data.chainId || BASE_CHAIN_ID,
+    });
+  }
+  
   localStorage.setItem(key, JSON.stringify(txns.slice(0, 50)));
+  // Dispatch event to notify other components (like homepage portfolio)
+  window.dispatchEvent(new Event("storage"));
 }
 
 export default function MarketDetailPage({
@@ -175,8 +186,9 @@ export default function MarketDetailPage({
   // Source search filter
   const [sourceSearch, setSourceSearch] = useState("");
 
-  // Test mode - allows positions under $5
+  // Trade mode settings
   const [testMode, setTestMode] = useState(false);
+  const [isAutomatedMode, setIsAutomatedMode] = useState(true);
 
   // Debounced amount for auto-detect (avoid scanning on every keystroke)
   const [debouncedAmount, setDebouncedAmount] = useState(0);
@@ -275,6 +287,8 @@ export default function MarketDetailPage({
     query: { enabled: !!address && !!noTokenAddress },
   });
 
+  const displayQuestion = isContract ? question : mockMarket?.question;
+
   const yesBalanceFormatted = yesBalance ? formatUnits(yesBalance as bigint, 6) : "0";
   const noBalanceFormatted = noBalance ? formatUnits(noBalance as bigint, 6) : "0";
   const hasYes = parseFloat(yesBalanceFormatted) > 0;
@@ -316,8 +330,15 @@ export default function MarketDetailPage({
         chainId: BASE_CHAIN_ID,
       });
 
-      // Save sell transaction to history
-      saveTransaction(address, sellTxHash, "sell", sellSide, sellAmount);
+      // Update transaction status
+      updateTransaction(address, sellTxHash, {
+        type: "sell",
+        side: sellSide,
+        amount: sellAmount,
+        status: "complete",
+        marketId: id,
+        marketQuestion: typeof displayQuestion === 'string' ? displayQuestion : undefined
+      });
 
       setSellState("success");
       setSellAmount("");
@@ -333,9 +354,8 @@ export default function MarketDetailPage({
       }
       setSellState("error");
     }
-  }, [sellAmount, address, isContract, sellSide, yesTokenAddress, noTokenAddress, id, writeContractAsync, refetchYesBalance, refetchNoBalance]);
+  }, [sellAmount, address, isContract, sellSide, yesTokenAddress, noTokenAddress, id, writeContractAsync, refetchYesBalance, refetchNoBalance, displayQuestion]);
 
-  const displayQuestion = isContract ? question : mockMarket?.question;
   const displayEnd =
     isContract && endTime
       ? new Date(Number(endTime) * 1000).toLocaleDateString()
@@ -377,7 +397,7 @@ export default function MarketDetailPage({
       {
         inputs: [],
         name: "decimals",
-        outputs: [{ name: "", type: "uint8" }],
+        outputs: [{ name: "uint8", type: "uint8" }],
         stateMutability: "view",
         type: "function",
       },
@@ -422,6 +442,7 @@ export default function MarketDetailPage({
         fromChainId: source.chainId,
         fromTokenAddress: source.tokenAddress,
         fromDecimals: source.decimals,
+        preferAutomated: isAutomatedMode,
       });
 
       setRoute(fetchedRoute);
@@ -435,7 +456,7 @@ export default function MarketDetailPage({
       setFlowState("error");
       setErrorRecoverable(false);
     }
-  }, [amount, address, id, isContract, side, source]);
+  }, [amount, address, id, isContract, side, source, isAutomatedMode]);
 
   const handleExecute = useCallback(async () => {
     if (!route) return;
@@ -492,7 +513,14 @@ export default function MarketDetailPage({
         setSuccessTxHash(txHash);
 
         // Save transaction to history
-        saveTransaction(address, txHash, "buy", directParams.side, directParams.amountUSDC);
+        updateTransaction(address, txHash, {
+          type: "buy",
+          side: directParams.side,
+          amount: directParams.amountUSDC,
+          status: "complete",
+          marketId: id,
+          marketQuestion: typeof displayQuestion === 'string' ? displayQuestion : undefined
+        });
 
         // Verify position
         if (isContract && address) {
@@ -561,9 +589,16 @@ export default function MarketDetailPage({
       async (txHash) => {
         setSuccessTxHash(txHash);
 
-        // Save transaction to history
+        // Update transaction to complete
         if (address && txHash) {
-          saveTransaction(address, txHash, "buy", side, amount, source.chainId);
+          updateTransaction(address, txHash, {
+            type: "buy",
+            side,
+            amount,
+            status: "complete",
+            marketQuestion: typeof displayQuestion === 'string' ? displayQuestion : undefined,
+            marketId: id
+          });
         }
 
         // Only verify on real contracts
@@ -616,14 +651,31 @@ export default function MarketDetailPage({
         setErrorMessage(error);
         setErrorRecoverable(true);
         setFlowState("error");
+        
+        // Find the last active step to get a txHash if possible
+        const lastTxHash = steps.find(s => s.status === 'active' || s.status === 'complete')?.txHash;
+        if (address && lastTxHash) {
+          updateTransaction(address, lastTxHash, {
+            type: "buy",
+            amount,
+            status: "error"
+          });
+        }
       },
       // callContract helper implementation
       async (params) => {
         const { marketAddress, side, amountUSDC, recipient, onStepUpdate } = params;
         const amountRaw = parseUnits(amountUSDC, 6);
 
-        // Step 1: Approve USDC
+        // Ensure we are on Base chain before proceeding
         onStepUpdate("Approving USDC on Base", "active");
+        try {
+          await switchChainAsync({ chainId: BASE_CHAIN_ID });
+        } catch (err) {
+          // Continue anyway
+        }
+
+        // Step 1: Approve USDC
         await writeContractAsync({
           address: BASE_USDC as Address,
           abi: ERC20_APPROVE_ABI,
@@ -642,12 +694,25 @@ export default function MarketDetailPage({
           args: [amountRaw, side === "YES", recipient],
           chainId: BASE_CHAIN_ID,
         });
+        
+        // Save as pending immediately
+        if (address) {
+          updateTransaction(address, txHash, {
+            type: "buy",
+            side,
+            amount: amountUSDC,
+            status: "pending",
+            marketQuestion: typeof displayQuestion === 'string' ? displayQuestion : undefined,
+            marketId: id
+          });
+        }
+        
         onStepUpdate("Placing position", "complete", txHash);
 
         return txHash;
       }
     );
-  }, [route, isContract, id, address, side, writeContractAsync, source.chainId, amount]);
+  }, [route, isContract, id, address, side, writeContractAsync, source.chainId, amount, displayQuestion, switchChainAsync, steps]);
 
   const handleRetry = useCallback(() => {
     handleExecute();
@@ -993,24 +1058,47 @@ export default function MarketDetailPage({
               </div>
             )}
 
-            {/* Test Mode Toggle */}
-            <div className="mt-4 flex items-center justify-between py-3 border-t border-stone-100">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-stone-500 uppercase tracking-wider">Test Mode</span>
-                <span className="text-[10px] text-stone-400 font-serif">(no $5 min)</span>
-              </div>
-              <button
-                onClick={() => setTestMode(!testMode)}
-                className={`relative w-10 h-5 transition-colors duration-200 border border-stone-300 ${
-                  testMode ? "bg-[#0C4A6E]" : "bg-stone-100"
-                }`}
-              >
-                <span
-                  className={`absolute top-0.5 left-0.5 w-[14px] h-[14px] transition-transform duration-200 ${
-                    testMode ? "translate-x-5 bg-white" : "bg-stone-400"
+            {/* Mode Toggles */}
+            <div className="mt-6 space-y-3 pt-4 border-t border-stone-100">
+              {/* Automated Trade Toggle */}
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col">
+                  <span className="text-xs font-medium text-stone-900 uppercase tracking-wider">One-Click Trade</span>
+                  <span className="text-[10px] text-stone-400 font-serif">Single signature automation</span>
+                </div>
+                <button
+                  onClick={() => setIsAutomatedMode(!isAutomatedMode)}
+                  className={`relative w-10 h-5 transition-colors duration-200 border border-stone-300 ${
+                    isAutomatedMode ? "bg-green-600 border-green-700" : "bg-stone-100"
                   }`}
-                />
-              </button>
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-[14px] h-[14px] transition-transform duration-200 ${
+                      isAutomatedMode ? "translate-x-5 bg-white" : "bg-stone-400"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Test Mode Toggle */}
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col">
+                  <span className="text-xs font-medium text-stone-500 uppercase tracking-wider">Test Mode</span>
+                  <span className="text-[10px] text-stone-400 font-serif">Bypass $5 minimum</span>
+                </div>
+                <button
+                  onClick={() => setTestMode(!testMode)}
+                  className={`relative w-10 h-5 transition-colors duration-200 border border-stone-300 ${
+                    testMode ? "bg-[#0C4A6E] border-[#0C4A6E]" : "bg-stone-100"
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-[14px] h-[14px] transition-transform duration-200 ${
+                      testMode ? "translate-x-5 bg-white" : "bg-stone-400"
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
           </div>
 
