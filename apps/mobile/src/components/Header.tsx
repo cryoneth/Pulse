@@ -1,18 +1,33 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { WalletButton } from "./WalletButton";
 
 export function Header() {
+  const pathname = usePathname();
+  const isMarketDetail = pathname.startsWith("/market/detail/");
+
   return (
     <nav className="sticky top-0 z-20 bg-white border-b border-stone-200 px-4 py-3 flex justify-between items-center">
-      <Link href="/">
-        <div className="border-2 border-[#0C4A6E] px-2 py-0.5">
-          <h1 className="text-xl font-serif font-semibold text-[#0C4A6E] tracking-tight">
-            Pulse
-          </h1>
-        </div>
-      </Link>
+      <div className="flex items-center gap-3">
+        <Link href="/">
+          <div className="border-2 border-[#0C4A6E] px-2 py-0.5">
+            <h1 className="text-xl font-serif font-semibold text-[#0C4A6E] tracking-tight">
+              Pulse
+            </h1>
+          </div>
+        </Link>
+        {isMarketDetail && (
+          <Link
+            href="/market/list"
+            className="text-xs font-bold text-stone-400 hover:text-[#0C4A6E] transition-colors uppercase tracking-widest flex items-center gap-1 border-l border-stone-200 pl-3"
+          >
+            &larr; Back
+          </Link>
+        )}
+      </div>
+      
       <div className="flex items-center gap-2">
         <button
           onClick={() => {

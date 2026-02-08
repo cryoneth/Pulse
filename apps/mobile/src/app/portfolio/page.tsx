@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { WalletButton } from "@/components/WalletButton";
 import { useAccount, useReadContracts, useBalance } from "wagmi";
 import { formatUnits, type Address } from "viem";
 import { mockMarkets } from "@/lib/mock-markets";
@@ -123,6 +124,25 @@ export default function PortfolioPage() {
     }
 
     const newPositions: Position[] = [];
+    
+    // Add simulated positions from localStorage
+    try {
+      const saved = localStorage.getItem(`pulse_positions_${address}`);
+      if (saved) {
+        const simulated = JSON.parse(saved);
+        simulated.forEach((p: any) => {
+          newPositions.push({
+            marketId: p.marketId,
+            marketAddress: p.marketId as Address,
+            question: p.question,
+            side: p.side,
+            shares: p.shares.toString(),
+            sharesRaw: BigInt(Math.round(p.shares * 1e6)),
+          });
+        });
+      }
+    } catch (e) {}
+
     let balanceIndex = 0;
 
     for (let i = 0; i < mockMarkets.length; i++) {

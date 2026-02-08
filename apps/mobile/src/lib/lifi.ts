@@ -212,33 +212,34 @@ export async function fetchQuote(params: QuoteParams): Promise<Route> {
         args: [BigInt(toAmountRaw), params.side === "YES", params.recipient],
       });
 
-      const request: any = {
-        fromChain: params.fromChainId,
-        fromToken: params.fromTokenAddress,
+      const { getRoutes } = await import("@lifi/sdk");
+      const result = await getRoutes({
+        fromChainId: params.fromChainId,
+        fromTokenAddress: params.fromTokenAddress,
         fromAddress: params.recipient,
-        toChain: BASE_CHAIN_ID,
-        toToken: BASE_USDC,
-        toAmount: toAmountRaw,
-        contractCalls: [{
-          fromAmount: toAmountRaw,
-          fromTokenAddress: BASE_USDC,
-          toContractAddress: params.marketAddress,
-          toContractCallData: callData,
-          toContractGasLimit: "350000",
-        }],
-      };
+        fromAmount: fromAmountRaw,
+        toChainId: BASE_CHAIN_ID,
+        toTokenAddress: BASE_USDC,
+        toAddress: params.recipient,
+        options: {
+          slippage: 0.03,
+          contractCalls: [{
+            fromAmount: toAmountRaw,
+            fromTokenAddress: BASE_USDC,
+            toContractAddress: params.marketAddress,
+            toContractCallData: callData,
+            toContractGasLimit: "350000",
+          }],
+        }
+      });
 
-      const quote = await getContractCallsQuote(request);
-      const route = convertQuoteToRoute(quote) as any;
-      
-      if ((quote as any).contractCalls && route.steps[0]) {
-        (route.steps[0] as any).contractCalls = (quote as any).contractCalls;
+      if (result.routes && result.routes.length > 0) {
+        const route = result.routes[0] as any;
+        route._isAutomated = true;
+        return route;
       }
-      
-      route._isAutomated = true;
-      return route;
     } catch (e) {
-      console.warn("Automated route failed:", e);
+      console.warn("Automated getRoutes failed:", e);
     }
   }
 

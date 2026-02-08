@@ -4,12 +4,12 @@ import { Market, Position, UserBalance } from "./types";
 export const mockMarkets: Market[] = [
   {
     id: "0x3168dE8A8Ab282E49c57C4bB76dE248fc3e21F91",
-    question: "Will the Lakers win the 2025 NBA Championship?",
+    question: "Will the Lakers win the 2026 NBA Championship?",
     category: "sports",
     yesPrice: 32,
     noPrice: 68,
     volume: 125400,
-    endDate: "2026-05-07",
+    endDate: "2026-06-20",
     resolved: false,
   },
   {
@@ -87,7 +87,7 @@ export const mockMarkets: Market[] = [
 export const mockPositions: Position[] = [
   {
     marketId: "0x3168dE8A8Ab282E49c57C4bB76dE248fc3e21F91",
-    question: "Will the Lakers win the 2025 NBA Championship?",
+    question: "Will the Lakers win the 2026 NBA Championship?",
     side: "YES",
     shares: 50,
     avgPrice: 28,

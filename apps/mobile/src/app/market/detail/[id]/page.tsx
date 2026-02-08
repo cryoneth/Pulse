@@ -14,7 +14,7 @@ import {
   useConfig,
 } from "wagmi";
 import { type Address, formatUnits, parseUnits } from "viem";
-import { getConnectorClient } from "wagmi/actions";
+import { getConnectorClient, waitForTransactionReceipt } from "wagmi/actions";
 import { PositionFlow } from "@/components/PositionFlow";
 import PriceHistoryChart from "@/components/PriceHistoryChart";
 import {
@@ -157,7 +157,7 @@ function MarketDetailContent({
   const isContract = id.startsWith("0x");
   const mockMarket = !isContract ? getMarketById(id) : null;
 
-  const { address } = useAccount();
+  const { address, chainId } = useAccount();
   const { data: walletClient } = useConnectorClient();
   const { switchChainAsync } = useSwitchChain();
   const wagmiConfig = useConfig();
@@ -309,7 +309,12 @@ function MarketDetailContent({
     query: { enabled: !!address && !!noTokenAddress },
   });
 
-  const displayQuestion = isContract ? question : mockMarket?.question;
+  let displayQuestion = isContract ? question : mockMarket?.question;
+  
+  // UI Override for Lakers Market (Legacy on-chain data says 2025)
+  if (id.toLowerCase() === "0x3168de8a8ab282e49c57c4bb76de248fc3e21f91".toLowerCase()) {
+    displayQuestion = "Will the Lakers win the 2026 NBA Championship?";
+  }
 
   const yesBalanceFormatted = yesBalance ? formatUnits(yesBalance as bigint, 6) : "0";
   const noBalanceFormatted = noBalance ? formatUnits(noBalance as bigint, 6) : "0";
@@ -333,6 +338,17 @@ function MarketDetailContent({
     setSellError("");
 
     try {
+      // Ensure we are on Base chain before proceeding
+      if (chainId !== BASE_CHAIN_ID) {
+        try {
+          await switchChainAsync({ chainId: BASE_CHAIN_ID });
+        } catch (err) {
+          setSellError("Please switch to Base network to continue.");
+          setSellState("error");
+          return;
+        }
+      }
+
       // Step 1: Approve the market contract to spend the user's share tokens
       await writeContractAsync({
         address: tokenAddr,
@@ -481,7 +497,56 @@ function MarketDetailContent({
   }, [amount, address, id, isContract, side, source, isAutomatedMode]);
 
   const handleExecute = useCallback(async () => {
-    if (!route) return;
+    if (!route || !address) return;
+
+    // SIMULATED FLOW FOR DEMO/TEST MODE
+    if (testMode) {
+      setFlowState("executing");
+      setSteps([
+        { label: "Establishing secure connection", status: "complete" },
+        { label: "Verifying liquidity pool", status: "complete" },
+        { label: "Simulating trade execution", status: "active" }
+      ]);
+
+      await new Promise(r => setTimeout(r, 1500));
+      
+      const txHash = "0x" + Math.random().toString(16).slice(2, 66);
+      setSuccessTxHash(txHash);
+      
+      // Update steps
+      setSteps([
+        { label: "Establishing secure connection", status: "complete" },
+        { label: "Verifying liquidity pool", status: "complete" },
+        { label: "Position placed successfully", status: "complete", txHash }
+      ]);
+
+      // Mock the transaction in history
+      updateTransaction(address, txHash, {
+        type: "buy",
+        side,
+        amount,
+        status: "complete",
+        marketId: id,
+        marketQuestion: typeof displayQuestion === 'string' ? displayQuestion : undefined
+      });
+
+      // Update mock positions so it shows up in portfolio
+      const existingPositions = JSON.parse(localStorage.getItem(`pulse_positions_${address}`) || "[]");
+      const newPos = {
+        marketId: id,
+        question: displayQuestion,
+        side,
+        shares: parseFloat(amount) * 2, // simple mock shares
+        avgPrice: 50,
+        currentPrice: side === 'YES' ? 52 : 48,
+        pnl: 4.0,
+        redeemable: false
+      };
+      localStorage.setItem(`pulse_positions_${address}`, JSON.stringify([newPos, ...existingPositions]));
+
+      setFlowState("success");
+      return;
+    }
 
     setFlowState("executing");
     setConfirmedShares(undefined);
@@ -490,10 +555,29 @@ function MarketDetailContent({
       ? (id as Address)
       : ("0x0000000000000000000000000000000000000001" as Address);
 
+    // Capture previous balance for verification
+    let previousBalance = BigInt(0);
+    try {
+      const client = createPublicClient({ chain: base, transport: http("https://base.publicnode.com") });
+      const tokenAddress = (await client.readContract({
+        address: marketAddr,
+        abi: MARKET_TOKEN_ABI,
+        functionName: side === "YES" ? "yesToken" : "noToken",
+      })) as Address;
+      previousBalance = (await client.readContract({
+        address: tokenAddress,
+        abi: ERC20_BALANCE_ABI,
+        functionName: "balanceOf",
+        args: [address],
+      })) as bigint;
+    } catch (e) {
+      console.warn("Failed to fetch previous balance:", e);
+    }
+
     // Handle direct USDC on Base route (no LI.FI needed)
     if (isDirectRoute(route)) {
       const directParams = getDirectRouteParams(route);
-      if (!directParams || !address) {
+      if (!directParams) {
         setErrorMessage("Invalid route parameters");
         setErrorRecoverable(false);
         setFlowState("error");
@@ -505,14 +589,31 @@ function MarketDetailContent({
       setSteps([...currentSteps]);
 
       try {
+        // Ensure we are on Base chain before proceeding
+        if (chainId !== BASE_CHAIN_ID) {
+          try {
+            await switchChainAsync({ chainId: BASE_CHAIN_ID });
+          } catch (switchError) {
+            setErrorMessage("Please switch to Base network to continue.");
+            setFlowState("error");
+            return;
+          }
+        }
+
         // Step 1: Approve USDC
         const amountRaw = parseUnits(directParams.amountUSDC, 6);
 
-        await writeContractAsync({
+        const approveHash = await writeContractAsync({
           address: BASE_USDC as Address,
           abi: ERC20_APPROVE_ABI,
           functionName: "approve",
           args: [directParams.marketAddress, amountRaw],
+          chainId: BASE_CHAIN_ID,
+        });
+
+        // Wait for approval to be mined before proceeding
+        await waitForTransactionReceipt(wagmiConfig, {
+          hash: approveHash,
           chainId: BASE_CHAIN_ID,
         });
 
@@ -534,18 +635,18 @@ function MarketDetailContent({
         setSteps([...currentSteps]);
         setSuccessTxHash(txHash);
 
-        // Save transaction to history
+        // Save transaction to history as pending
         updateTransaction(address, txHash, {
           type: "buy",
           side: directParams.side,
           amount: directParams.amountUSDC,
-          status: "complete",
+          status: "pending",
           marketId: id,
           marketQuestion: typeof displayQuestion === 'string' ? displayQuestion : undefined
         });
 
         // Verify position
-        if (isContract && address) {
+        if (isContract) {
           setFlowState("verifying");
           setSteps((prev) => [
             ...prev,
@@ -557,10 +658,20 @@ function MarketDetailContent({
               marketAddress: marketAddr,
               side,
               owner: address,
+              previousBalance,
             });
 
             if (verified) {
               setConfirmedShares(verified.shares);
+              // Update status to complete in history
+              updateTransaction(address, txHash, {
+                type: "buy",
+                side: directParams.side,
+                amount: directParams.amountUSDC,
+                status: "complete",
+                marketId: id,
+                marketQuestion: typeof displayQuestion === 'string' ? displayQuestion : undefined
+              });
               setSteps((prev) =>
                 prev.map((s) =>
                   s.label === "Verifying position..."
@@ -611,20 +722,20 @@ function MarketDetailContent({
       async (txHash) => {
         setSuccessTxHash(txHash);
 
-        // Update transaction to complete
-        if (address && txHash) {
+        // Update transaction to pending
+        if (txHash) {
           updateTransaction(address, txHash, {
             type: "buy",
             side,
             amount,
-            status: "complete",
+            status: "pending",
             marketQuestion: typeof displayQuestion === 'string' ? displayQuestion : undefined,
             marketId: id
           });
         }
 
         // Only verify on real contracts
-        if (isContract && address) {
+        if (isContract) {
           setFlowState("verifying");
           setSteps((prev) => [
             ...prev,
@@ -636,10 +747,21 @@ function MarketDetailContent({
               marketAddress: marketAddr,
               side,
               owner: address,
+              previousBalance,
             });
 
             if (verified) {
               setConfirmedShares(verified.shares);
+              if (txHash) {
+                updateTransaction(address, txHash, {
+                  type: "buy",
+                  side,
+                  amount,
+                  status: "complete",
+                  marketQuestion: typeof displayQuestion === 'string' ? displayQuestion : undefined,
+                  marketId: id
+                });
+              }
               setSteps((prev) =>
                 prev.map((s) =>
                   s.label === "Verifying position..."
@@ -676,7 +798,7 @@ function MarketDetailContent({
         
         // Find the last active step to get a txHash if possible
         const lastTxHash = steps.find(s => s.status === 'active' || s.status === 'complete')?.txHash;
-        if (address && lastTxHash) {
+        if (lastTxHash) {
           updateTransaction(address, lastTxHash, {
             type: "buy",
             amount,
@@ -690,19 +812,28 @@ function MarketDetailContent({
         const amountRaw = parseUnits(amountUSDC, 6);
 
         // Ensure we are on Base chain before proceeding
-        onStepUpdate("Approving USDC on Base", "active");
-        try {
-          await switchChainAsync({ chainId: BASE_CHAIN_ID });
-        } catch (err) {
-          // Continue anyway
+        if (chainId !== BASE_CHAIN_ID) {
+          try {
+            await switchChainAsync({ chainId: BASE_CHAIN_ID });
+          } catch (err) {
+            throw new Error("Please switch to Base network to continue.");
+          }
         }
 
         // Step 1: Approve USDC
-        await writeContractAsync({
+        onStepUpdate("Approving USDC on Base", "active");
+        const approveHash = await writeContractAsync({
           address: BASE_USDC as Address,
           abi: ERC20_APPROVE_ABI,
           functionName: "approve",
           args: [marketAddress, amountRaw],
+          chainId: BASE_CHAIN_ID,
+        });
+        
+        // Wait for approval to be mined
+        onStepUpdate("Approving USDC on Base", "active", approveHash);
+        await waitForTransactionReceipt(wagmiConfig, {
+          hash: approveHash,
           chainId: BASE_CHAIN_ID,
         });
         onStepUpdate("Approving USDC on Base", "complete");
@@ -718,23 +849,21 @@ function MarketDetailContent({
         });
         
         // Save as pending immediately
-        if (address) {
-          updateTransaction(address, txHash, {
-            type: "buy",
-            side,
-            amount: amountUSDC,
-            status: "pending",
-            marketQuestion: typeof displayQuestion === 'string' ? displayQuestion : undefined,
-            marketId: id
-          });
-        }
+        updateTransaction(address, txHash, {
+          type: "buy",
+          side,
+          amount: amountUSDC,
+          status: "pending",
+          marketQuestion: typeof displayQuestion === 'string' ? displayQuestion : undefined,
+          marketId: id
+        });
         
         onStepUpdate("Placing position", "complete", txHash);
 
         return txHash;
       }
     );
-  }, [route, isContract, id, address, side, writeContractAsync, source.chainId, amount, displayQuestion, switchChainAsync, steps]);
+  }, [route, isContract, id, address, side, writeContractAsync, source.chainId, amount, displayQuestion, switchChainAsync, steps, wagmiConfig]);
 
   const handleRetry = useCallback(() => {
     handleExecute();
@@ -798,18 +927,9 @@ function MarketDetailContent({
 
   return (
     <div className="text-stone-900 pb-32">
-      <div className="relative">
-        <Link
-          href="/market/list"
-          className="absolute left-4 top-4 z-30 text-stone-500 hover:text-stone-900 transition-colors flex items-center gap-1 text-sm font-medium bg-white/80 backdrop-blur-sm pr-2 py-1 border border-stone-200"
-        >
-          &larr; <span className="hidden sm:inline">Back</span>
-        </Link>
-      </div>
-
       <div className="px-4 py-6">
         {/* Market Question - Editorial headline */}
-        <h1 className="text-2xl font-serif font-semibold leading-tight text-stone-900 mb-3">
+        <h1 id="market-question" className="text-2xl font-serif font-semibold leading-tight text-stone-900 mb-3">
           {displayQuestion}
         </h1>
 

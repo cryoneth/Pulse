@@ -13,23 +13,26 @@ import { useAccount } from "wagmi";
 export default function Home() {
   const [activeTab, setActiveTab] = useState<"markets" | "portfolio">("markets");
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [positions, setPositions] = useState<any[]>(mockPositions);
   const { address } = useAccount();
   const trending = mockMarkets.slice(0, 3);
   const marketsRef = useRef<HTMLDivElement>(null);
 
-  // Load real transactions
+  // Load real transactions and positions
   useEffect(() => {
     if (!address) return;
-    const loadTxns = () => {
-      const key = `pulse_txns_${address}`;
-      const saved = localStorage.getItem(key);
-      if (saved) {
-        setTransactions(JSON.parse(saved));
-      }
+    const loadData = () => {
+      const txKey = `pulse_txns_${address}`;
+      const savedTx = localStorage.getItem(txKey);
+      if (savedTx) setTransactions(JSON.parse(savedTx));
+
+      const posKey = `pulse_positions_${address}`;
+      const savedPos = localStorage.getItem(posKey);
+      if (savedPos) setPositions([...JSON.parse(savedPos), ...mockPositions]);
     };
-    loadTxns();
-    window.addEventListener("storage", loadTxns);
-    return () => window.removeEventListener("storage", loadTxns);
+    loadData();
+    window.addEventListener("storage", loadData);
+    return () => window.removeEventListener("storage", loadData);
   }, [address]);
 
   const scrollToMarkets = () => {
@@ -164,7 +167,7 @@ export default function Home() {
 
               <div className="space-y-3 mb-8">
                 <p className="text-[10px] font-medium text-stone-400 uppercase tracking-widest px-1">Active Positions</p>
-                {mockPositions.map((pos, idx) => (
+                {positions.map((pos, idx) => (
                   <div key={idx} className="bg-white border border-stone-200 p-4 flex justify-between items-center">
                     <div>
                       <p className="text-sm font-serif font-semibold text-stone-900 line-clamp-1">{pos.question}</p>
