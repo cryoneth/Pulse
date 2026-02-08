@@ -309,13 +309,7 @@ export function NewsCarousel() {
       const diffX = e.changedTouches[0].clientX - touchStartX;
       const diffY = e.changedTouches[0].clientY - touchStartY;
 
-      if (isDraggingVertical) {
-        // Swipe up or down to flip
-        if (Math.abs(diffY) > 50) {
-          toggleFlip(currentIndex);
-        }
-      }
-      else if (isDraggingHorizontal) {
+      if (isDraggingHorizontal) {
         // Swipe left (negative diff) = show next card
         if (diffX < -50) {
           nextCard();
@@ -365,12 +359,8 @@ export function NewsCarousel() {
     const diffX = e.clientX - mouseStartX.current;
     const diffY = e.clientY - mouseStartY.current;
     
-    // Vertical drag/swipe
-    if (Math.abs(diffY) > 50 && Math.abs(diffY) > Math.abs(diffX)) {
-      toggleFlip(currentIndex);
-    }
     // If it was a horizontal drag/swipe
-    else if (Math.abs(diffX) > 50) {
+    if (Math.abs(diffX) > 50) {
       if (diffX > 0) prevCard();
       else nextCard();
     } 
@@ -487,6 +477,7 @@ export function NewsCarousel() {
                   // Only handle flipping here if it's the current card
                   if (isCurrent) {
                     e.stopPropagation();
+                    toggleFlip(index);
                   }
                 }}
               >
@@ -512,11 +503,6 @@ export function NewsCarousel() {
                         <span className={`px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider border ${cat.border} ${cat.text} ${cat.bg}`}>
                           {news.category}
                         </span>
-                        {isCurrent && (
-                          <div className="flex flex-col items-end animate-bounce">
-                            <span className="text-[10px] font-bold text-[#0C4A6E]">↑ READ</span>
-                          </div>
-                        )}
                       </div>
                       
                       <img
@@ -552,9 +538,11 @@ export function NewsCarousel() {
                         </div>
                       </div>
                       
-                      <span className="text-[10px] text-[#0C4A6E] font-semibold mt-1">
-                        Swipe up to read more ↑
-                      </span>
+                      <div className="flex justify-start mt-2 animate-pulse">
+                        <span className="text-[10px] font-black text-[#0C4A6E] tracking-tighter bg-sky-50 px-2 py-0.5 border border-sky-200 shadow-[2px_2px_0px_#0C4A6E]">
+                          CLICK ME TO READ MORE
+                        </span>
+                      </div>
                     </div>
                   </div>
 
@@ -568,17 +556,10 @@ export function NewsCarousel() {
                     }}
                   >
                     <div className="p-5 sm:p-6 flex flex-col h-full bg-[#FAFAF9]/50">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <span className={`px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider border ${cat.border} ${cat.text} bg-white`}>
-                            Full Story
-                          </span>
-                        </div>
-                        {isCurrent && (
-                          <div className="flex flex-col items-end animate-bounce">
-                            <span className="text-[10px] font-bold text-[#0C4A6E]">↓ BACK</span>
-                          </div>
-                        )}
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider border ${cat.border} ${cat.text} bg-white`}>
+                          Full Story
+                        </span>
                       </div>
                       
                       <h3
@@ -615,9 +596,9 @@ export function NewsCarousel() {
                             e.stopPropagation();
                             toggleFlip(index);
                           }}
-                          className="text-xs text-[#0C4A6E] font-semibold hover:underline"
+                          className="px-3 py-1 bg-white border border-stone-300 text-[10px] font-bold text-stone-600 uppercase tracking-widest hover:bg-stone-50 transition-colors"
                         >
-                          ← Close
+                          Close
                         </button>
                       </div>
                     </div>
@@ -631,7 +612,7 @@ export function NewsCarousel() {
 
       {/* Hint text */}
       <p className="text-center text-[10px] font-medium text-stone-400 mt-4 uppercase tracking-widest">
-        Swipe left/right to browse • Swipe up/down to read more
+        Swipe left/right to browse • Click card to flip
       </p>
     </div>
   );
