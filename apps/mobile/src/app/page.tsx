@@ -3,7 +3,6 @@
 import { mockMarkets, mockPositions, mockBalance } from "@/lib/mock-markets";
 import { MarketCard } from "@/components/MarketCard";
 import Link from "next/link";
-import { WalletButton } from "@/components/WalletButton";
 import { PriceTicker } from "@/components/PriceTicker";
 import { NewsCarousel } from "@/components/NewsCarousel";
 import { NewsSidebar } from "@/components/NewsSidebar";
@@ -48,23 +47,13 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFAF9] text-stone-900 font-sans">
-      {/* Navbar / Header - Clean, editorial */}
-      <nav className="sticky top-0 z-20 bg-white border-b border-stone-200 px-4 py-3 flex justify-between items-center">
-        <div className="border-2 border-[#0C4A6E] px-2 py-0.5">
-          <h1 className="text-xl font-serif font-semibold text-[#0C4A6E] tracking-tight">
-            Pulse
-          </h1>
-        </div>
-        <WalletButton />
-      </nav>
-
+    <div className="text-stone-900 font-sans">
       {/* Price Ticker */}
       <PriceTicker />
 
       <main className="px-4 py-6 pb-24 max-w-7xl mx-auto">
         {/* News & Insights Section */}
-        <section className="mb-12">
+        <section id="market-intelligence-section" className="mb-12">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-serif font-semibold text-stone-900">Market Intelligence</h2>
             <span className="text-xs font-medium text-stone-400 uppercase tracking-widest">Dispatch 02.07.26</span>
@@ -84,7 +73,7 @@ export default function Home() {
         </section>
 
         {/* Action Tabs - Content Switchers (Sticky) */}
-        <section className="sticky top-[48px] z-10 grid grid-cols-2 border border-stone-200 mb-8 bg-white shadow-sm">
+        <section id="action-tabs-section" className="sticky top-[48px] z-10 grid grid-cols-2 border border-stone-200 mb-8 bg-white shadow-sm">
           <button
             onClick={scrollToMarkets}
             className={`flex items-center justify-center gap-2 px-4 py-4 font-medium transition-all duration-200 ${
@@ -99,6 +88,7 @@ export default function Home() {
             Trade Now
           </button>
           <button
+            id="portfolio-tab-button"
             onClick={scrollToPortfolio}
             className={`flex items-center justify-center gap-2 px-4 py-4 font-medium border-l border-stone-200 transition-all duration-200 ${
               activeTab === "portfolio"
@@ -127,8 +117,10 @@ export default function Home() {
                 </Link>
               </div>
               <div className="flex flex-col">
-                {trending.map((market) => (
-                  <MarketCard key={market.id} market={market} />
+                {trending.map((market, index) => (
+                  <div key={market.id} id={index === 0 ? "market-card-0" : undefined}>
+                    <MarketCard market={market} />
+                  </div>
                 ))}
               </div>
             </section>

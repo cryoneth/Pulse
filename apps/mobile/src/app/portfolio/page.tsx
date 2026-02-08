@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { WalletButton } from "@/components/WalletButton";
 import { useAccount, useReadContracts, useBalance } from "wagmi";
 import { formatUnits, type Address } from "viem";
 import { mockMarkets } from "@/lib/mock-markets";
@@ -219,18 +218,7 @@ export default function PortfolioPage() {
 
   if (!isConnected) {
     return (
-      <div className="min-h-screen bg-[#FAFAF9]">
-        <div className="bg-white border-b border-stone-200 px-4 py-4 flex justify-between items-center">
-          <Link href="/">
-            <div className="border-2 border-[#0C4A6E] px-2 py-0.5">
-              <h1 className="text-xl font-serif font-semibold text-[#0C4A6E] tracking-tight">
-                Pulse
-              </h1>
-            </div>
-          </Link>
-          <WalletButton />
-        </div>
-        <div className="flex flex-col items-center justify-center px-4 py-20">
+      <div className="flex flex-col items-center justify-center px-4 py-20">
           <div className="w-16 h-16 bg-stone-100 flex items-center justify-center mb-4">
             <svg className="w-8 h-8 text-stone-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -242,24 +230,11 @@ export default function PortfolioPage() {
           </p>
           <WalletButton />
         </div>
-      </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#FAFAF9] pb-24">
-      {/* Header */}
-      <div className="bg-white border-b border-stone-200 px-4 py-4 flex justify-between items-center">
-        <Link href="/">
-          <div className="border-2 border-[#0C4A6E] px-2 py-0.5">
-            <h1 className="text-xl font-serif font-semibold text-[#0C4A6E] tracking-tight">
-              Pulse
-            </h1>
-          </div>
-        </Link>
-        <WalletButton />
-      </div>
-
+    <div className="pb-24">
       <div className="px-4 py-4">
         {/* Balance Summary Card */}
         <div className="bg-[#0C4A6E] p-5 mb-5 text-white">

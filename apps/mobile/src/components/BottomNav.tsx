@@ -47,6 +47,7 @@ export function BottomNav() {
             <Link
               key={item.label}
               href={item.href}
+              id={`nav-${item.label.toLowerCase()}`}
               className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors duration-200 ${
                 isActive
                   ? "text-[#0C4A6E]"

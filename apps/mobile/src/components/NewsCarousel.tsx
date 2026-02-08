@@ -433,6 +433,7 @@ export function NewsCarousel() {
   return (
     <div 
       className="relative overflow-visible select-none"
+      id="market-intelligence-deck"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onTouchStart={() => setIsPaused(true)}

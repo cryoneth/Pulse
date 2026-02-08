@@ -4,6 +4,8 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { BottomNav } from "@/components/BottomNav";
 import { FloatingPositionsButton } from "@/components/FloatingPositions";
+import { OnboardingTour } from "@/components/OnboardingTour";
+import { Header } from "@/components/Header";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -49,10 +51,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} ${sourceSans.variable} bg-gray-100 text-gray-900 pb-20`}
+        className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} ${sourceSans.variable} bg-[#FAFAF9] text-gray-900 pb-20`}
       >
         <Providers>
+          <Header />
           {children}
+          <OnboardingTour />
           <FloatingPositionsButton />
           <BottomNav />
         </Providers>

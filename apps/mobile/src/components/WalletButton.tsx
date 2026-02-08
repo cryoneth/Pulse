@@ -28,12 +28,13 @@ export function WalletButton() {
   if (isConnected && address) {
     return (
       <button
+        id="wallet-button"
         onClick={() => disconnect()}
-        className="group flex items-center gap-2 px-3 py-2 bg-white text-stone-700 text-xs font-medium border border-stone-200 hover:border-stone-300 transition-colors duration-200"
+        className="group flex items-center gap-2 px-3 h-9 bg-white text-stone-700 text-xs font-medium border border-stone-200 hover:border-stone-300 transition-colors duration-200 shrink-0 font-sans"
       >
-        <span className="w-2 h-2 rounded-full bg-green-500" />
-        <span className="tabular-nums">{address.slice(0, 6)}...{address.slice(-4)}</span>
-        <svg className="w-3 h-3 text-stone-400 group-hover:text-stone-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <span className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
+        <span className="tabular-nums whitespace-nowrap leading-none font-sans">{address.slice(0, 6)}...{address.slice(-4)}</span>
+        <svg className="w-3.5 h-3.5 text-stone-400 group-hover:text-stone-600 transition-colors shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
         </svg>
       </button>
@@ -50,23 +51,23 @@ export function WalletButton() {
   });
 
   return (
-    <div className="relative">
+    <div className="relative shrink-0 font-sans" id="wallet-button">
       <button
         onClick={() => {
           setConnectError(null);
           setShowMenu(!showMenu);
         }}
         disabled={isPending}
-        className="px-4 py-2 bg-[#0C4A6E] hover:bg-[#075985] text-white text-sm font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="px-4 h-9 bg-[#0C4A6E] hover:bg-[#075985] text-white text-sm font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap font-sans"
       >
         {isPending ? (
-          <span className="flex items-center gap-2">
+          <>
             <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
             Connecting
-          </span>
+          </>
         ) : (
           "Connect"
         )}

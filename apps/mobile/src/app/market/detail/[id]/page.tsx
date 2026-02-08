@@ -16,7 +16,6 @@ import {
 import { type Address, formatUnits, parseUnits } from "viem";
 import { getConnectorClient } from "wagmi/actions";
 import { PositionFlow } from "@/components/PositionFlow";
-import { WalletButton } from "@/components/WalletButton";
 import PriceHistoryChart from "@/components/PriceHistoryChart";
 import {
   initLifi,
@@ -798,26 +797,15 @@ function MarketDetailContent({
     return <div className="p-8 text-center text-stone-500">Market not found</div>;
 
   return (
-    <div className="min-h-screen bg-[#FAFAF9] text-stone-900 pb-32">
-      {/* Navbar */}
-      <nav className="bg-white border-b border-stone-200 px-4 py-3 flex items-center gap-4">
+    <div className="text-stone-900 pb-32">
+      <div className="relative">
         <Link
           href="/market/list"
-          className="text-sm font-medium text-stone-500 hover:text-stone-900 transition-colors"
+          className="absolute left-4 top-4 z-30 text-stone-500 hover:text-stone-900 transition-colors flex items-center gap-1 text-sm font-medium bg-white/80 backdrop-blur-sm pr-2 py-1 border border-stone-200"
         >
-          &larr; Back
+          &larr; <span className="hidden sm:inline">Back</span>
         </Link>
-        <div className="flex-1 flex justify-center">
-          <Link href="/">
-            <div className="border-2 border-[#0C4A6E] px-2 py-0.5">
-              <h1 className="text-xl font-serif font-semibold text-[#0C4A6E] tracking-tight">
-                Pulse
-              </h1>
-            </div>
-          </Link>
-        </div>
-        <WalletButton />
-      </nav>
+      </div>
 
       <div className="px-4 py-6">
         {/* Market Question - Editorial headline */}
